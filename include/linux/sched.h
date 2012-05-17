@@ -148,6 +148,7 @@ extern unsigned long get_avg_nr_running(unsigned int cpu);
 extern unsigned long avg_nr_running(void);
 
 extern void calc_global_load(unsigned long ticks);
+extern void update_cpu_load_nohz(void);
 
 extern unsigned long get_parent_ip(unsigned long addr);
 
