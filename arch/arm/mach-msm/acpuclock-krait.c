@@ -429,12 +429,9 @@ static int calculate_vdd_dig(const struct acpu_level *tgt)
 		   max(l2_pll_vdd_dig, cpu_pll_vdd_dig));
 }
 
-static bool enable_boost = true;
-module_param_named(boost, enable_boost, bool, S_IRUGO | S_IWUSR);
-
 static int calculate_vdd_core(const struct acpu_level *tgt)
 {
-	return tgt->vdd_core + (enable_boost ? drv.boost_uv : 0);
+	return tgt->vdd_core;
 }
 
 static DEFINE_MUTEX(l2_regulator_lock);
