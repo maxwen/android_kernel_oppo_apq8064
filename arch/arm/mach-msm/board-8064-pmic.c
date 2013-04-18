@@ -397,11 +397,12 @@ apq8064_pm8921_irq_pdata __devinitdata = {
 
 static struct pm8xxx_rtc_platform_data
 apq8064_pm8921_rtc_pdata = {
-	.rtc_write_enable       = false,
 /* OPPO 2012-09-19 liujun Modify begin for set rtc */
 #ifndef CONFIG_VENDOR_EDIT
+	.rtc_write_enable       = false,
 	.rtc_alarm_powerup      = false,
 #else
+	.rtc_write_enable       = true,
 	.rtc_alarm_powerup      = true,
 #endif
 /* OPPO 2012-09-19 liujun Modify end */
