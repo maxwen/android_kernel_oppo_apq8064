@@ -27,12 +27,6 @@
 #include <linux/rtc.h>
 #include <trace/events/power.h>
 
-/*OPPO 2012-11-27 zhzhyon Add for headset detect*/
-#ifdef CONFIG_VENDOR_EDIT
-#include <linux/wakelock.h>
-#endif
-/*OPPO 2012-11-27 zhzhyon Add end*/
-
 #include "power.h"
 
 const char *const pm_states[PM_SUSPEND_MAX] = {
@@ -178,23 +172,9 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	if (!error) {
 		*wakeup = pm_wakeup_pending();
 		if (!(suspend_test(TEST_CORE) || *wakeup)) {
-		/*OPPO 2012-11-27 zhzhyon Add for headset detect*/
-		#ifdef CONFIG_VENDOR_EDIT
-		if(has_wake_lock(WAKE_LOCK_SUSPEND))
-		{
-			goto Resume_devices;
-		}
-		#endif
-		/*OPPO 2012-11-27 zhzhyon Add end*/
-		
 			error = suspend_ops->enter(state);
 			events_check_enabled = false;
 		}
-/*OPPO 2012-11-27 zhzhyon Add for headset detect*/
-#ifdef CONFIG_VENDOR_EDIT
-Resume_devices:
-#endif
-/*OPPO 2012-11-27 zhzhyon Add end*/
 		syscore_resume();
 	}
 
@@ -238,14 +218,6 @@ int suspend_devices_and_enter(suspend_state_t state)
 	suspend_console();
 	suspend_test_start();
 	error = dpm_suspend_start(PMSG_SUSPEND);
-	/*OPPO 2012-11-27 zhzhyon Add for reason*/
-	#ifdef CONFIG_VENDOR_EDIT
-	if(has_wake_lock(WAKE_LOCK_SUSPEND))
-	{
-		goto Resume_devices;
-	}
-	#endif
-	/*OPPO 2012-11-27 zhzhyon Add end*/	
 	if (error) {
 		printk(KERN_ERR "PM: Some devices failed to suspend\n");
 		goto Recover_platform;
