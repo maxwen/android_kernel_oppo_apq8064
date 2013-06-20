@@ -532,6 +532,8 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 		curr_policy->user_policy.policy = curr_policy->policy;
 		curr_policy->user_policy.governor = curr_policy->governor;
 		
+		sysfs_notify(&curr_policy->kobj, NULL, "scaling_governor");
+		
 		if (!ret)
 			pr_info("store_scaling_governor setting governor %s on cpu %d ok\n", str_governor, cpu);
 
@@ -930,6 +932,9 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 #ifdef CONFIG_SMP
 	unsigned long flags;
 	unsigned int j;
+	
+	/* maxwen: governor and all limits are already set in cpufreq_add_dev */
+#if 0
 #ifdef CONFIG_HOTPLUG_CPU
 	struct cpufreq_governor *gov;
 
@@ -949,6 +954,7 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 	}
 	pr_debug("Restoring CPU%d min %d and max %d\n",
 		cpu, policy->min, policy->max);
+#endif
 #endif
 
 	for_each_cpu(j, policy->cpus) {
@@ -1182,10 +1188,6 @@ static int cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 		if (cp && cp->governor &&
 		    (cpumask_test_cpu(cpu, cp->related_cpus))) {
 			policy->governor = cp->governor;
-			policy->min = cp->min;
-			policy->max = cp->max;
-			policy->user_policy.min = cp->user_policy.min;
-			policy->user_policy.max = cp->user_policy.max;
 			found = 1;
 			break;
 		}
@@ -1193,6 +1195,7 @@ static int cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 #endif
 	if (!found)
 		policy->governor = CPUFREQ_DEFAULT_GOVERNOR;
+
 	/* call driver. From then on the cpufreq must be able
 	 * to accept all calls to ->verify and ->setpolicy for this CPU
 	 */
@@ -1205,7 +1208,7 @@ static int cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 	policy->user_policy.max = policy->max;
 
 	if (found) {
-		/* Calling the driver can overwrite policy frequencies again */
+		/* Calling the driver can overwrite policy frequencies */
 		policy->min = cp->min;
 		policy->max = cp->max;
 		policy->user_policy.min = cp->user_policy.min;
