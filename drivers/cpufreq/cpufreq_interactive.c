@@ -731,7 +731,8 @@ static ssize_t store_input_boost(struct kobject *kobj, struct attribute *attr,
 	return count;
 }
 
-define_one_global_rw(input_boost);
+static struct global_attr input_boost_attr = __ATTR(input_boost, 0666,
+		show_input_boost, store_input_boost);
 
 static ssize_t show_boost(struct kobject *kobj, struct attribute *attr,
 			  char *buf)
@@ -782,7 +783,7 @@ static struct attribute *interactive_attributes[] = {
 	&above_hispeed_delay.attr,
 	&min_sample_time_attr.attr,
 	&timer_rate_attr.attr,
-	&input_boost.attr,
+	&input_boost_attr.attr,
 	&boost.attr,
 	&boostpulse.attr,
 	NULL,
