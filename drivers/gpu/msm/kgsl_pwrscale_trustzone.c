@@ -276,7 +276,11 @@ static int tz_init(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
 	if (pwrscale->priv == NULL)
 		return -ENOMEM;
 
+#ifdef CONFIG_MSM_KGSL_SIMPLE_GOV
+	priv->governor = TZ_GOVERNOR_SIMPLE;
+#else
 	priv->governor = TZ_GOVERNOR_ONDEMAND;
+#endif
 	spin_lock_init(&tz_lock);
 	kgsl_pwrscale_policy_add_files(device, pwrscale, &tz_attr_group);
 
