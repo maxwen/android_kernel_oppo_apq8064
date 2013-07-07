@@ -1203,6 +1203,7 @@ static int cpufreq_smartmax_boost_task(void *data) {
 #endif
 	}
 
+	pr_info("[smartmax]:" "%s boost_thread stopped\n", __func__);
 	return 0;
 }
 
@@ -1341,6 +1342,7 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 					return PTR_ERR(boost_task);
 				}
 
+				pr_info("[smartmax]:" "%s input boost task created\n", __func__);
 				sched_setscheduler_nocheck(boost_task, SCHED_RR, &param);
 				get_task_struct(boost_task);
 				boost_task_alive = true;
@@ -1400,6 +1402,9 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 		dbs_enable--;
 
 		if (!dbs_enable){
+			if (boost_task_alive)
+				kthread_stop(boost_task);
+
 			sysfs_remove_group(cpufreq_global_kobject, &smartmax_attr_group);
 			input_unregister_handler(&dbs_input_handler);
 #ifdef CONFIG_HAS_EARLYSUSPEND
