@@ -29,7 +29,6 @@ struct cpuquiet_governor *cpuquiet_curr_governor;
 static struct cpuquiet_governor* default_gov = NULL;
 
 extern int cpq_auto_hotplug_init(void);
-static int cpuquiet_input_init(void);
 
 /*
  * only after register we can check for the kernel
@@ -114,11 +113,9 @@ int __init cpuquiet_register_governor(struct cpuquiet_governor *gov)
 		return -EINVAL;
 
 	// if there is at least one governor start hotplugging
-	if (!cpuquiet_get_driver()){
+	if (!cpuquiet_get_driver())
 		cpq_auto_hotplug_init();
-		cpuquiet_input_init();
-	}
-	
+
 	mutex_lock(&cpuquiet_lock);
 	if (cpuquiet_find_governor(gov->name) == NULL) {
 		ret = 0;
@@ -239,3 +236,4 @@ static int cpuquiet_input_init(void)
 	return input_register_handler(&cpuquiet_input_handler);
 }
 
+late_initcall(cpuquiet_input_init);
