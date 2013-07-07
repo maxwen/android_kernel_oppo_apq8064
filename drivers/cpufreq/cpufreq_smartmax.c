@@ -1203,7 +1203,9 @@ static int cpufreq_smartmax_boost_task(void *data) {
 #endif
 	}
 
+#if SMARTMAX_DEBUG
 	pr_info("[smartmax]:" "%s boost_thread stopped\n", __func__);
+#endif
 	return 0;
 }
 
@@ -1244,7 +1246,9 @@ static int dbs_input_connect(struct input_handler *handler,
 	if (input_dev_filter(dev->name))
 		return 0;
 
+#if SMARTMAX_DEBUG
 	pr_info("[smartmax]:" "%s input connect to %s\n", __func__, dev->name);
+#endif
 
 	handle = kzalloc(sizeof(struct input_handle), GFP_KERNEL);
 	if (!handle)
@@ -1333,7 +1337,7 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 				boost_task = kthread_create (
 						cpufreq_smartmax_boost_task,
 						NULL,
-						"kinputboostd"
+						"smartmax_input_boost_task"
 				);
 
 				if (IS_ERR(boost_task)) {
@@ -1342,7 +1346,9 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 					return PTR_ERR(boost_task);
 				}
 
+#if SMARTMAX_DEBUG
 				pr_info("[smartmax]:" "%s input boost task created\n", __func__);
+#endif
 				sched_setscheduler_nocheck(boost_task, SCHED_RR, &param);
 				get_task_struct(boost_task);
 				boost_task_alive = true;
