@@ -525,25 +525,29 @@ static void cpufreq_smartmax_freq_change(struct smartmax_info_s *this_smartmax) 
 	this_smartmax->ramp_dir = 0;
 }
 
-static inline void cpufreq_smartmax_get_ramp_direction(unsigned int debug_load, unsigned int cur, struct smartmax_info_s *this_smartmax, struct cpufreq_policy *policy, u64 now)
+static inline void cpufreq_smartmax_get_ramp_direction(struct smartmax_info_s *this_smartmax, u64 now)
 {
+	unsigned int cur_load = this_smartmax->cur_cpu_load;
+	unsigned int cur = this_smartmax->old_freq;
+	struct cpufreq_policy *policy = this_smartmax->cur_policy;
+	
 	// Scale up if load is above max or if there where no idle cycles since coming out of idle,
 	// additionally, if we are at or above the ideal_speed, verify we have been at this frequency
 	// for at least up_rate:
-	if (debug_load > max_cpu_load && cur < policy->max
+	if (cur_load > max_cpu_load && cur < policy->max
 			&& (cur < this_smartmax->ideal_speed
 				|| (now - this_smartmax->freq_change_time) >= up_rate)) {
 		dprintk(SMARTMAX_DEBUG_ALG,
-				"%d: ramp up: load %d\n", cur, debug_load);
+				"%d: ramp up: load %d\n", cur, cur_load);
 		this_smartmax->ramp_dir = 1;
 	}
 	// Similarly for scale down: load should be below min and if we are at or below ideal
 	// frequency we require that we have been at this frequency for at least down_rate:
-	else if (debug_load < min_cpu_load && cur > policy->min
+	else if (cur_load < min_cpu_load && cur > policy->min
 			&& (cur > this_smartmax->ideal_speed
 				|| (now - this_smartmax->freq_change_time) >= down_rate)) {
 		dprintk(SMARTMAX_DEBUG_ALG,
-				"%d: ramp down: load %d\n", cur, debug_load);
+				"%d: ramp down: load %d\n", cur, cur_load);
 		this_smartmax->ramp_dir = -1;
 	}
 }
@@ -552,9 +556,8 @@ static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax) {
 	unsigned int cur;
 	struct cpufreq_policy *policy = this_smartmax->cur_policy;
 	u64 now = ktime_to_us(ktime_get());
-	unsigned int max_load_freq;
-	unsigned int debug_load = 0;
-	unsigned int debug_iowait = 0;
+	/* Extrapolated load of this CPU */
+	unsigned int load_at_max_freq = 0;
 	unsigned int j = 0;
 #if SMARTMAX_DEBUG
 	unsigned int cpu = this_smartmax->cpu;
@@ -575,18 +578,13 @@ static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax) {
 
 	dprintk(SMARTMAX_DEBUG_ALG, "%d: %s cpu %d %lld\n", cur, __func__, cpu, now);
 
-
-	/* Get Absolute Load - in terms of freq */
-	max_load_freq = 0;
-
 	for_each_cpu(j, policy->cpus)
 	{
 		struct smartmax_info_s *j_this_smartmax;
 		u64 cur_wall_time, cur_idle_time, cur_iowait_time;
 		unsigned int idle_time, wall_time, iowait_time;
-		unsigned int load, load_freq;
-		int freq_avg;
-
+		unsigned int cur_load;
+		
 		j_this_smartmax = &per_cpu(smartmax_info, j);
 
 		cur_idle_time = get_cpu_idle_time(j, &cur_wall_time);
@@ -609,7 +607,7 @@ static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax) {
 			cur_nice = kstat_cpu(j).cpustat.nice - j_this_smartmax->prev_cpu_nice;
 			cur_nice_jiffies = (unsigned long) cputime64_to_jiffies64(cur_nice);
 
-			j_this_smartmax->prev_cpu_nice = kstat_cpu(j) .cpustat.nice;
+			j_this_smartmax->prev_cpu_nice = kstat_cpu(j).cpustat.nice;
 #else
 			cur_nice = kcpustat_cpu(j).cpustat[CPUTIME_NICE] - j_this_smartmax->prev_cpu_nice;
 			cur_nice_jiffies = (unsigned long) cputime64_to_jiffies64(cur_nice);
@@ -633,27 +631,21 @@ static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax) {
 		if (unlikely(!wall_time || wall_time < idle_time))
 			continue;
 
-		load = 100 * (wall_time - idle_time) / wall_time;
-
-		freq_avg = __cpufreq_driver_getavg(policy, j);
-		if (freq_avg <= 0)
-			freq_avg = policy->cur;
-
-		load_freq = load * freq_avg;
-		if (load_freq > max_load_freq) {
-			max_load_freq = load_freq;
-			debug_load = load;
-			debug_iowait = 100 * iowait_time / wall_time;
-		}
+		cur_load = 100 * (wall_time - idle_time) / wall_time;
+		j_this_smartmax->cur_cpu_load = cur_load;
 	}
 
-	dprintk(SMARTMAX_DEBUG_LOAD, "%d: load %d\n", cur, debug_load);
+	/* calculate the scaled load across CPU */
+	load_at_max_freq = (this_smartmax->cur_cpu_load * policy->cur)/policy->cpuinfo.max_freq;
 
-	this_smartmax->cur_cpu_load = debug_load;
+	cpufreq_notify_utilization(policy, load_at_max_freq);
+
+	dprintk(SMARTMAX_DEBUG_LOAD, "%d: load %d\n", cpu, this_smartmax->cur_cpu_load);
+
 	this_smartmax->old_freq = cur;
 	this_smartmax->ramp_dir = 0;
 
-	cpufreq_smartmax_get_ramp_direction(debug_load, cur, this_smartmax, policy, now);
+	cpufreq_smartmax_get_ramp_direction(this_smartmax, now);
 
 	// no changes
 	if (this_smartmax->ramp_dir == 0)		
