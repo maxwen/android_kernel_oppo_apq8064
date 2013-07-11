@@ -1333,7 +1333,7 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 	unsigned int cpu = new_policy->cpu;
 	int rc;
 	struct smartmax_info_s *this_smartmax = &per_cpu(smartmax_info, cpu);
-	struct sched_param param = { .sched_priority = 1 };
+	struct sched_param param = { .sched_priority = MAX_RT_PRIO-1 };
     unsigned int latency;
 
 	switch (event) {
@@ -1371,7 +1371,7 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 #if SMARTMAX_DEBUG
 				pr_info("[smartmax]:" "%s input boost task created\n", __func__);
 #endif
-				sched_setscheduler_nocheck(boost_task, SCHED_RR, &param);
+				sched_setscheduler_nocheck(boost_task, SCHED_FIFO, &param);
 				get_task_struct(boost_task);
 				boost_task_alive = true;
 			}
