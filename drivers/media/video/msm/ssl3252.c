@@ -13,7 +13,7 @@
 #include <linux/gpio.h>
 
 //#define SSL3252_DEBUG 1
-#define CAMERA_FLASH_SSL3252_DEBUG
+//#define CAMERA_FLASH_SSL3252_DEBUG
 #ifdef CAMERA_FLASH_SSL3252_DEBUG
 #define CDBG_FLASH(fmt, args...) printk(KERN_INFO "ssl3252.c: " fmt, ##args) 
 #else
