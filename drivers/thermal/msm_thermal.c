@@ -153,19 +153,22 @@ static void __cpuinit check_temp(struct work_struct *work)
 	tsens_dev.sensor_num = msm_thermal_info.sensor_id;
 	ret = tsens_get_temp(&tsens_dev, &temp);
 	if (ret) {
-		pr_debug("%s: Unable to read TSENS sensor %d\n",
+		pr_err("%s: Unable to read TSENS sensor %d\n",
 				KBUILD_MODNAME, tsens_dev.sensor_num);
 		goto reschedule;
 	}
 
 	if (!limit_init) {
 		ret = msm_thermal_get_freq_table();
-		if (ret)
+		if (ret){
+			pr_err("%s: msm_thermal_get_freq_table failed\n", __func__);
 			goto reschedule;
-		else
+		} else
 			limit_init = 1;
 	}
 
+	//pr_info("%s: %ld\n", __func__, temp);
+	
 	do_core_control(temp);
 
 	if (temp >= msm_thermal_info.limit_temp_degC) {
@@ -254,6 +257,7 @@ static void __cpuinit disable_msm_thermal(void)
 static int __cpuinit set_enabled(const char *val, const struct kernel_param *kp)
 {
 	int ret = 0;
+	bool old_enabled = enabled;
 
 	ret = param_set_bool(val, kp);
 	if (!enabled)
@@ -263,6 +267,10 @@ static int __cpuinit set_enabled(const char *val, const struct kernel_param *kp)
 				KBUILD_MODNAME, enabled);
 
 	pr_info("%s: enabled = %d\n", KBUILD_MODNAME, enabled);
+
+	/* (re)start polling */
+	if (!old_enabled && enabled)
+		schedule_delayed_work(&check_temp_work, 0);
 
 	return ret;
 }
