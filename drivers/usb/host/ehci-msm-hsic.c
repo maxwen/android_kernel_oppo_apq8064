@@ -106,6 +106,7 @@ struct msm_hsic_hcd {
 struct msm_hsic_hcd *__mehci;
 
 static bool debug_bus_voting_enabled = true;
+static bool skip_resume_enabled = true;
 
 static unsigned int enable_payload_log = 1;
 module_param(enable_payload_log, uint, S_IRUGO | S_IWUSR);
@@ -1559,6 +1560,53 @@ const struct file_operations ehci_hsic_msm_dbg_ctrl_fops = {
 	.release = single_release,
 };
 
+static int ehci_hsic_msm_skip_resume_show(struct seq_file *s, void *unused)
+{
+	if (skip_resume_enabled)
+		seq_printf(s, "enabled\n");
+	else
+		seq_printf(s, "disabled\n");
+
+	return 0;
+}
+
+static int ehci_hsic_msm_skip_resume_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, ehci_hsic_msm_skip_resume_show, inode->i_private);
+}
+
+static ssize_t ehci_hsic_msm_skip_resume_write(struct file *file,
+	const char __user *ubuf, size_t count, loff_t *ppos)
+{
+	char buf[8];
+	struct seq_file *s = file->private_data;
+	struct msm_hsic_hcd *mehci = s->private;
+	struct usb_hcd *hcd = hsic_to_hcd(mehci);
+
+	memset(buf, 0x00, sizeof(buf));
+
+	if (copy_from_user(&buf, ubuf, min_t(size_t, sizeof(buf) - 1, count)))
+		return -EFAULT;
+
+	if (!strncmp(buf, "enable", 6)) {
+		skip_resume_enabled = true;
+		hcd_to_bus(hcd)->skip_resume = true;
+	} else {
+		skip_resume_enabled = false;
+		hcd_to_bus(hcd)->skip_resume = false;
+	}
+
+	return count;
+}
+
+const struct file_operations ehci_hsic_msm_dbg_skip_resume_fops = {
+	.open = ehci_hsic_msm_skip_resume_open,
+	.read = seq_read,
+	.write = ehci_hsic_msm_skip_resume_write,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
 static struct dentry *ehci_hsic_msm_dbg_root;
 static int ehci_hsic_msm_debugfs_init(struct msm_hsic_hcd *mehci)
 {
@@ -1603,6 +1651,16 @@ static int ehci_hsic_msm_debugfs_init(struct msm_hsic_hcd *mehci)
 		S_IRUGO,
 		ehci_hsic_msm_dbg_root, mehci,
 		&ehci_hsic_msm_dbg_data_fops);
+
+	if (!ehci_hsic_msm_dentry) {
+		debugfs_remove_recursive(ehci_hsic_msm_dbg_root);
+		return -ENODEV;
+	}
+
+	ehci_hsic_msm_dentry = debugfs_create_file("skip_resume",
+		S_IRUGO | S_IWUSR,
+		ehci_hsic_msm_dbg_root, mehci,
+		&ehci_hsic_msm_dbg_skip_resume_fops);
 
 	if (!ehci_hsic_msm_dentry) {
 		debugfs_remove_recursive(ehci_hsic_msm_dbg_root);
