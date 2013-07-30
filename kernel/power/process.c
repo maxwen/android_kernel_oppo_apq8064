@@ -114,7 +114,8 @@ static int try_to_freeze_tasks(bool user_only)
 			       elapsed_csecs / 100, elapsed_csecs % 100,
 			       todo - wq_busy, wq_busy);
 		}
-
+/* OPPO 2013-06-07 huanggd Delete begin for too many printk info lead to system hungup */
+#if 0
 		if (!wakeup) {
 			read_lock(&tasklist_lock);
 			do_each_thread(g, p) {
@@ -125,6 +126,8 @@ static int try_to_freeze_tasks(bool user_only)
 			} while_each_thread(g, p);
 			read_unlock(&tasklist_lock);
 		}
+#endif	
+/* OPPO 2013-06-07 huanggd Delete end */
 	} else {
 		printk("(elapsed %d.%02d seconds) ", elapsed_csecs / 100,
 			elapsed_csecs % 100);
