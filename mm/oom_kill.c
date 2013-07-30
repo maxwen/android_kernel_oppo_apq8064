@@ -421,6 +421,13 @@ static void dump_tasks(const struct mem_cgroup *memcg, const nodemask_t *nodemas
 static void dump_header(struct task_struct *p, gfp_t gfp_mask, int order,
 			struct mem_cgroup *memcg, const nodemask_t *nodemask)
 {
+
+/* OPPO 2013-05-24 huanggd Modify for reduce printk rate*/			
+	if (!printk_ratelimit()) {
+		return;
+	}
+/* OPPO 2013-05-24 huanggd Modify end*/	
+
 	task_lock(current);
 	pr_warning("%s invoked oom-killer: gfp_mask=0x%x, order=%d, "
 		"oom_adj=%d, oom_score_adj=%d\n",
