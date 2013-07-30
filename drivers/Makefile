@@ -127,7 +127,7 @@ obj-y				+= ieee802154/
 obj-y				+= clk/
 
 obj-$(CONFIG_HWSPINLOCK)	+= hwspinlock/
-obj-$(CONFIG_NFC)		+= nfc/
+#obj-$(CONFIG_NFC)		+= nfc/
 obj-$(CONFIG_IOMMU_SUPPORT)	+= iommu/
 obj-$(CONFIG_REMOTEPROC)	+= remoteproc/
 obj-$(CONFIG_RPMSG)		+= rpmsg/
@@ -140,5 +140,12 @@ obj-$(CONFIG_PM_DEVFREQ)	+= devfreq/
 
 #MobiCore
 obj-$(CONFIG_MOBICORE_SUPPORT)  += gud/
+#add by oppo liuhd for nfc
+obj-$(CONFIG_NFC_DEVICES)  += nfc/
 
 obj-$(CONFIG_CORESIGHT)		+= coresight/
+
+#ifdef VENDOR_EDIT
+#wangy@OnLineRD.Framework.pms.permission_intercept, 2013/04/12, Add for permission intercept.
+obj-$(CONFIG_PERMISSION_INTERCEPT)	+= networkpmsmodule/
+#endif /* VENDOR_EDIT */
