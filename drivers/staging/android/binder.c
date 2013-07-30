@@ -33,6 +33,9 @@
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
 #include <linux/slab.h>
+//VENDOR_EDIT:peirs modify for binder error cause system crash, 2013.05.24, begin:
+#include <linux/ratelimit.h>
+//end.
 
 #include "binder.h"
 #include "binder_trace.h"
@@ -1397,6 +1400,95 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 	}
 }
 
+#ifdef CONFIG_VENDOR_EDIT
+//VENDOR_EDIT: peirs add for debug binder transaction failed, 2013.05.18:
+static char* binder_debug_get_error_code_str(int error_code)
+{
+	char *code_str;
+	
+	switch (error_code) {
+		case BR_ERROR:
+			code_str = "BR_ERROR";
+		break;
+
+		case BR_OK:
+			code_str = "BR_OK";
+		break;
+	
+		case BR_TRANSACTION:
+			code_str = "BR_TRANSACTION";
+		break;
+
+		case BR_REPLY:
+			code_str = "BR_REPLY";
+		break;
+
+		case BR_ACQUIRE_RESULT:
+			code_str = "BR_ACQUIRE_RESULT";
+		break;
+
+		case BR_DEAD_REPLY:
+			code_str = "BR_DEAD_REPLY";
+		break;
+
+		case BR_TRANSACTION_COMPLETE:
+			code_str = "BR_TRANSACTION_COMPLETE";
+		break;
+
+		case BR_INCREFS:
+			code_str = "BR_INCREFS";
+		break;
+
+		case BR_ACQUIRE:
+			code_str = "BR_ACQUIRE";
+		break;
+
+		case BR_RELEASE:
+			code_str = "BR_RELEASE";
+		break;
+
+		case BR_DECREFS:
+			code_str = "BR_DECREFS";
+		break;
+
+		case BR_ATTEMPT_ACQUIRE:
+			code_str = "BR_ATTEMPT_ACQUIRE";
+		break;
+		
+		case BR_NOOP:
+			code_str = "BR_NOOP";
+		break;
+
+		case BR_SPAWN_LOOPER:
+			code_str = "BR_SPAWN_LOOPER";
+		break;
+
+		case BR_FINISHED:
+			code_str = "BR_FINISHED";
+		break;
+
+		case BR_DEAD_BINDER:
+			code_str = "BR_DEAD_BINDER";
+		break;
+
+		case BR_CLEAR_DEATH_NOTIFICATION_DONE:
+			code_str = "BR_CLEAR_DEATH_NOTIFICATION_DONE";
+		break;
+
+		case BR_FAILED_REPLY:
+			code_str = "BR_FAILED_REPLY";
+		break;
+
+		default:
+			code_str = "not-suit";
+		break;
+	}
+
+	return code_str;
+}
+#endif /* VENDOR_EDIT */
+
+
 static void binder_transaction(struct binder_proc *proc,
 			       struct binder_thread *thread,
 			       struct binder_transaction_data *tr, int reply)
@@ -1800,6 +1892,10 @@ err_no_context_mgr_node:
 		     "binder: %d:%d transaction failed %d, size %zd-%zd\n",
 		     proc->pid, thread->pid, return_error,
 		     tr->data_size, tr->offsets_size);
+	#ifdef CONFIG_VENDOR_EDIT
+	//VENDOR_EDIT: peirs add for debug binder transaction failed, 2013.05.18:
+	printk_ratelimited(KERN_ERR "peirs debug:biner:error code:%d, code-str:%s, end\n", return_error, binder_debug_get_error_code_str(return_error));
+	#endif /* VENDOR_EDIT */
 
 	{
 		struct binder_transaction_log_entry *fe;
@@ -3083,9 +3179,15 @@ static void binder_deferred_release(struct binder_proc *proc)
 		if (t) {
 			t->buffer = NULL;
 			buffer->transaction = NULL;
+			#ifdef CONFIG_VENDOR_EDIT
+			//peirs modify for binder error cause system crash, 2013.05.24, begin:
+			printk_ratelimited(KERN_ERR "binder: release proc %d, transaction %d, not freed\n",
+			       proc->pid, t->debug_id);
+			#else
 			printk(KERN_ERR "binder: release proc %d, "
 			       "transaction %d, not freed\n",
 			       proc->pid, t->debug_id);
+			#endif /* VENDOR_EDIT */
 			/*BUG();*/
 		}
 		binder_free_buf(proc, buffer);
@@ -3655,6 +3757,19 @@ static int __init binder_init(void)
 				    &binder_transaction_log_failed,
 				    &binder_transaction_log_fops);
 	}
+
+	#ifdef CONFIG_VENDOR_EDIT
+	//VENDOR_EDIT: peirs add for debug binder transaction failed, 2013.05.18:
+	printk(KERN_ERR "1 debug:binder: binder_init, BR_ERROR:%d, BR_OK:%d, BR_TRANSACTION:%d, BR_REPLY:%d, BR_ACQUIRE_RESULT:%d, BR_DEAD_REPLY:%d"
+			   ", end\n", BR_ERROR, BR_OK, BR_TRANSACTION, BR_REPLY, BR_ACQUIRE_RESULT, BR_DEAD_REPLY);
+	
+	printk(KERN_ERR "2 debug:binder: binder_init, BR_TRANSACTION_COMPLETE:%d, BR_INCREFS:%d, BR_ACQUIRE:%d, BR_RELEASE:%d, BR_DECREFS:%d, BR_ATTEMPT_ACQUIRE:%d"
+			   ", end\n", BR_TRANSACTION_COMPLETE, BR_INCREFS, BR_ACQUIRE, BR_RELEASE, BR_DECREFS, BR_ATTEMPT_ACQUIRE);
+	
+	printk(KERN_ERR "3 debug:binder: binder_init, BR_NOOP:%d, BR_SPAWN_LOOPER:%d, BR_FINISHED:%d, BR_DEAD_BINDER:%d, BR_CLEAR_DEATH_NOTIFICATION_DONE:%d, BR_FAILED_REPLY:%d"
+			   ", end\n", BR_NOOP, BR_SPAWN_LOOPER, BR_FINISHED, BR_DEAD_BINDER, BR_CLEAR_DEATH_NOTIFICATION_DONE, BR_FAILED_REPLY);
+	#endif /* VENDOR_EDIT */
+	
 	return ret;
 }
 
