@@ -22,6 +22,9 @@ endif
 obj-$(CONFIG_MSM_CAMERA) += vfe/
 obj-$(CONFIG_MSM_CAMERA) += msm_axi_qos.o gemini/ mercury/ jpeg_10/
 obj-$(CONFIG_MSM_CAMERA_FLASH) += flash.o
+# OPPO 2013-02-04 kangjian added begin for ssl3252
+obj-$(CONFIG_MSM_CAMERA_FLASH_SSL3252) += ssl3252.o
+# OPPO 2013-02-04 kangjian added end
 ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
   obj-$(CONFIG_ARCH_MSM8X60) += msm_vpe.o
   obj-$(CONFIG_ARCH_MSM7X30) += msm_vpe.o msm_axi_qos.o

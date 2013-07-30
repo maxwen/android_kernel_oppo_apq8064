@@ -400,6 +400,35 @@ config IMX091
 	---help---
 	  Sony 13MP sensor back camera that uses 4 mipi lanes,
 	  runs at 30 fps preview and 14 fps snapshot
+# OPPO 2013-02-04 kangjian added begin for imx135
+config IMX135
+        bool "Sensor imx135 (Sony 13MP)"
+        depends on MSM_CAMERA
+	default y
+	---help---
+	  Sony 13MP sensor back camera that uses 4 mipi lanes,
+	  runs at 30 fps preview and 14 fps snapshot
+# OPPO 2013-02-04 kangjian added end
+
+# OPPO 2013-02-04 kangjian added begin for ssl3252
+config MSM_CAMERA_FLASH_SSL3252
+	bool "Qualcomm MSM camera ssl3252 flash support"
+	depends on MSM_CAMERA
+	default y
+	---help---
+	  Enable support for LED flash for msm camera.
+	  It is a Texas Instruments multiple LED Flash
+	  for camera flash and video light applications.
+# OPPO 2013-02-04 kangjian added end
+
+# OPPO 2013-02-04 kangjian added begin for s5k6a3yx
+config S5K6A3YX
+        bool "Sensor S5K6A3YX (BAYER 1.9M)"
+        depends on MSM_CAMERA
+        default y
+        ---help---
+        SAMSUNG 1.9 MP bayer Sensor
+# OPPO 2013-02-04 kangjian added end 
 
 config MSM_V4L2_VIDEO_OVERLAY_DEVICE
 	tristate "Qualcomm MSM V4l2 video overlay device"
