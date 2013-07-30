@@ -505,6 +505,12 @@ static void mdm_disable_irqs(struct mdm_device *mdev)
 	disable_irq_nosync(mdev->mdm_pblrdy_irq);
 }
 
+/* OPPO 2013-03-08 zhenwx Add begin for modem fatal error enter  ramdump */
+#ifdef CONFIG_MODEM_ERR_ENTER_RAMDUMP
+extern int download_mode;
+extern bool otrace_on;
+#endif
+/* OPPO 2013-03-08 zhenwx Add end */
 static irqreturn_t mdm_errfatal(int irq, void *dev_id)
 {
 	struct mdm_modem_drv *mdm_drv;
@@ -515,11 +521,19 @@ static irqreturn_t mdm_errfatal(int irq, void *dev_id)
 	pr_debug("%s: mdm id %d sent errfatal interrupt\n",
 			 __func__, mdev->mdm_data.device_id);
 	mdm_drv = &mdev->mdm_data;
+	/* OPPO 2013-03-08 zhenwx Add begin for modem fatal error enter  ramdump */
+#ifdef CONFIG_MODEM_ERR_ENTER_RAMDUMP
+		download_mode = 1;
+		otrace_on = true;
+		panic("mdm_errfatal panic\n");
+#endif
+/* OPPO 2013-03-08 zhenwx Add end */		
 	if (atomic_read(&mdm_drv->mdm_ready) &&
 		(gpio_get_value(mdm_drv->mdm2ap_status_gpio) == 1)) {
 		pr_info("%s: Received err fatal from mdm id %d\n",
 				__func__, mdev->mdm_data.device_id);
 		mdm_start_ssr(mdev);
+
 	}
 	return IRQ_HANDLED;
 }
@@ -975,7 +989,9 @@ static int mdm_configure_ipc(struct mdm_device *mdev)
 		goto errfatal_err;
 	}
 	mdev->mdm_errfatal_irq = irq;
-
+/* OPPO 2013-01-25 zhenwx Add begin for enable modem err fatal signal wakeup AP */
+	enable_irq_wake(irq);	
+/* OPPO 2013-01-25 zhenwx Add end */
 errfatal_err:
 
 	 /* status irq */

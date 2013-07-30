@@ -429,7 +429,16 @@ static void __subsystem_restart_dev(struct subsys_device *dev)
 		spin_unlock_irqrestore(&dev->restart_lock, flags);
 	}
 }
-
+//#ifdef VENDOR_EDIT
+//WuJinping@OnlineRD.AirService.Phone 2013.1.7, Add for modem subsystem restart not need pin
+extern void set_need_pin_process_flag(int flag);
+extern int get_sim_status(void);
+int modem_reset_num = 0;
+int get_modem_reset_num(void)
+{
+	return modem_reset_num;
+}
+//#endif /* VENDOR_EDIT */
 int subsystem_restart_dev(struct subsys_device *dev)
 {
 	const char *name = dev->desc->name;
@@ -447,7 +456,17 @@ int subsystem_restart_dev(struct subsys_device *dev)
 
 	pr_info("Restart sequence requested for %s, restart_level = %d.\n",
 		name, restart_level);
-
+//#ifdef VENDOR_EDIT
+//WuJinping@OnlineRD.AirService.Phone 2013.1.7, Add for modem subsystem restart not need pin
+	if(!strncmp("external_modem", name,SUBSYS_NAME_MAX_LENGTH))
+	{
+		modem_reset_num++;
+		if(get_sim_status() == 1)
+		{
+			set_need_pin_process_flag(1);
+		}
+	}
+//#endif /* VENDOR_EDIT */
 	switch (restart_level) {
 
 	case RESET_SUBSYS_COUPLED:
@@ -570,17 +589,27 @@ static int __init ssr_init_soc_restart_orders(void)
 		mutex_init(&restart_orders[i]->shutdown_lock);
 	}
 
+/* OPPO 2013-04-24 zhenwx Delete begin for delete warning log */
+#if 0
 	if (restart_orders == NULL || n_restart_orders < 1) {
 		WARN_ON(1);
 	}
+#endif
+/* OPPO 2013-04-24 zhenwx Delete end */
 
 	return 0;
 }
 
 static int __init subsys_restart_init(void)
 {
+//#ifndef VENDOR_EDIT
+//WuJinping@OnlineRD.AirService.Modem  2012/12/05, Modify for modem reset not cause kernel reset
+/*
 	restart_level = RESET_SOC;
-
+*/
+//#else /* VENDOR_EDIT */	
+	restart_level = RESET_SUBSYS_COUPLED;
+//#endif /* VENDOR_EDIT */
 	ssr_wq = alloc_workqueue("ssr_wq", WQ_CPU_INTENSIVE, 0);
 	if (!ssr_wq)
 		panic("%s: out of memory\n", __func__);

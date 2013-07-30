@@ -484,6 +484,11 @@ config MSM_ADM3
 
 menu "MSM Board Selection"
 
+#OPPO 2013-02-19 zhenwx Add begin for distinguish oppo code 
+config VENDOR_EDIT
+	bool "VENDOR_EDIT"
+	default y
+#OPPO 2013-02-19 zhenwxAdd end 
 config MACH_HALIBUT
 	depends on ARCH_MSM7X01A
 	depends on MSM_STACKED_MEMORY
@@ -2600,6 +2605,27 @@ config MSM_HSIC_SYSMON_TEST
 	  can be read and written to send character data to the sysmon port of
 	  the modem over USB.
 
+# add by zhengzk start
+config FB_MSM_MIPI_BACKLIGHT_LM3528
+	bool "FB_MSM_MIPI_BACKLIGHT_LM3528"
+	default y
+# add by zhengzk end 
+
+# add by zhenwx start
+config MODEM_ERR_ENTER_RAMDUMP
+	bool "MODEM_ERR_ENTER_RAMDUMP"
+    default n
+       help 
+        modem error interrupt been detected,system enter ramdump mode
+# add by zhenwx end 
+
+# add by chendx start
+config CONFIG_OPPO_DEBUG_ASSERT
+	bool "CONFIG_OPPO_DEBUG_ASSERT"
+    default y
+       help 
+        config oppo debug assert
+# add by chendx end 
 config MSM_CPU_PWRCTL
 	bool "Ensures that krait droop detectors are always off"
 	help

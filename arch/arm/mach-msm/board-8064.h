@@ -84,12 +84,18 @@ void apq8064_init_gpiomux(void);
 void apq8064_init_pmic(void);
 
 extern struct msm_camera_board_info apq8064_camera_board_info;
+/* OPPO 2013-02-04 kangjian added begin for s5k6a3yx */
+extern struct msm_camera_board_info apq8064_subcamera_board_info;
+/* OPPO 2013-02-04 kangjian added end */
 void apq8064_init_cam(void);
 
 #define APQ_8064_GSBI1_QUP_I2C_BUS_ID 0
 #define APQ_8064_GSBI3_QUP_I2C_BUS_ID 3
 #define APQ_8064_GSBI4_QUP_I2C_BUS_ID 4
 #define APQ_8064_GSBI5_QUP_I2C_BUS_ID 5
+/* OPPO 2013-02-04 kangjian yxq Add begin for s5k6a3yx's I2C */
+#define APQ_8064_GSBI7_QUP_I2C_BUS_ID 7
+/* OPPO 2013-02-04 kangjian yxq Add end */
 
 unsigned char apq8064_hdmi_as_primary_selected(void);
 unsigned char apq8064_mhl_display_enabled(void);

@@ -66,7 +66,18 @@ static void *dload_mode_addr;
 
 /* Download mode master kill-switch */
 static int dload_set(const char *val, struct kernel_param *kp);
+/* OPPO 2012-11-27  zwx modified begin for reboot after crash   */
+#ifdef CONFIG_MODEM_ERR_ENTER_RAMDUMP
+	int download_mode = 0;
+#else
+
+#if 0  
 static int download_mode = 1;
+#else
+static int download_mode = 0;
+#endif
+#endif
+/* OPPO 2012-11-27  zwx modified end   */
 module_param_call(download_mode, dload_set, param_get_int,
 			&download_mode, 0644);
 
@@ -195,6 +206,14 @@ static irqreturn_t resout_irq_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+/* OPPO 2012-10-22 Van Modify begin for restart mode begin*/
+#define FACTORY_MODE	0x77665504
+#define WLAN_MODE		0x77665505
+#define RF_MODE			0x77665506
+#define RECOVERY_MODE   0x77665502
+#define FASTBOOT_MODE   0x77665500
+/* OPPO 2012-10-22 Van Modify begin for restart mode end*/
+
 #ifdef CONFIG_LGE_CRASH_HANDLER
 #define SUBSYS_NAME_MAX_LENGTH	40
 
@@ -235,6 +254,15 @@ void set_kernel_crash_magic_number(void)
 void msm_restart(char mode, const char *cmd)
 {
 
+/* OPPO 2003-02-20 Van added begin for system power off*/
+	if (system_state == SYSTEM_POWER_OFF)
+	{
+		printk(KERN_NOTICE "system_state power off, cancel restart\n");
+		msm_power_off();
+	}
+/* OPPO 2003-02-20 Van added end for system power off*/
+
+
 #ifdef CONFIG_MSM_DLOAD_MODE
 
 	/* This looks like a normal reboot at this point. */
@@ -261,21 +289,36 @@ void msm_restart(char mode, const char *cmd)
 
 	pm8xxx_reset_pwr_off(1);
 
+/* OPPO 2012-10-22 Van Modify begin for restart mode*/
 	if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)) {
-			__raw_writel(0x77665500, restart_reason);
+			__raw_writel(FASTBOOT_MODE, restart_reason);
 		} else if (!strncmp(cmd, "recovery", 8)) {
-			__raw_writel(0x77665502, restart_reason);
+			__raw_writel(RECOVERY_MODE, restart_reason);
+		}  else if (!strncmp(cmd, "rf", 2)) {
+			__raw_writel(RF_MODE, restart_reason);
+		}   else if (!strncmp(cmd, "wlan", 4)) {
+			__raw_writel(WLAN_MODE, restart_reason);
+		}   else if (!strncmp(cmd, "ftm", 3)) {
+			__raw_writel(FACTORY_MODE, restart_reason);
 		} else if (!strncmp(cmd, "oem-", 4)) {
 			unsigned long code;
 			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
 			__raw_writel(0x6f656d00 | code, restart_reason);
-		} else {
+		} else if (!strncmp(cmd, "kernel", 6)) {
+            __raw_writel(0x7766550a, restart_reason);
+        } else if (!strncmp(cmd, "modem", 5)) {
+            __raw_writel(0x7766550b, restart_reason);
+        } else if (!strncmp(cmd, "android", 7)) {
+            __raw_writel(0x7766550c, restart_reason);
+        } else {
 			__raw_writel(0x77665501, restart_reason);
 		}
 	} else {
 		__raw_writel(0x77665501, restart_reason);
 	}
+/* OPPO 2012-10-22 Van Modify begin for restart mode end*/
+	
 #ifdef CONFIG_LGE_CRASH_HANDLER
 	if (in_panic == 1)
 		set_kernel_crash_magic_number();
@@ -335,6 +378,9 @@ static int __init msm_restart_init(void)
 #endif
 	msm_tmr0_base = msm_timer_get_timer0_base();
 	restart_reason = MSM_IMEM_BASE + RESTART_REASON_ADDR;
+/* OPPO 2013-02-21 Van added begin for default restart reason */
+	__raw_writel(0x7766550a, restart_reason);
+/* OPPO 2013-02-21 Van added end for default restart reason */
 	pm_power_off = msm_power_off;
 
 	return 0;

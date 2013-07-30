@@ -53,6 +53,19 @@
 #include "pm-boot.h"
 #include <mach/event_timer.h>
 
+/* OPPO 2013-04-19 hewei Add begin for ftm */
+enum{
+	MSM_BOOT_MODE__NORMAL,
+	MSM_BOOT_MODE__FASTBOOT,
+	MSM_BOOT_MODE__RECOVERY,
+	MSM_BOOT_MODE__FACTORY,
+	MSM_BOOT_MODE__RF,
+	MSM_BOOT_MODE__WLAN,
+};
+extern int get_boot_mode(void);
+/* OPPO 2013-04-19 hewei Add end for ftm*/
+
+
 /******************************************************************************
  * Debug Definitions
  *****************************************************************************/
