@@ -1891,8 +1891,7 @@ static inline void hci_auth_complete_evt(struct hci_dev *hdev, struct sk_buff *s
 			} else {
 				conn->state = BT_CONNECTED;
 				hci_proto_connect_cfm(conn, ev->status);
-			#ifndef CONFIG_VENDOR_EDIT //liuhd add 20130516
-			/*连接蓝牙耳机偶尔出现无手机的问题*/ 
+			#ifndef CONFIG_VENDOR_EDIT
 				conn->disc_timeout = HCI_DISCONN_AUTH_FAILED_TIMEOUT;
 			#else
 				if (ev->status)
