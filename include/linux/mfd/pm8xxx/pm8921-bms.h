@@ -44,6 +44,14 @@ struct pm8xxx_bms_core_data {
  * @disable_flat_portion_ocv:	feature to disable ocv updates while in sleep
  * @ocv_dis_high_soc:		the high soc percent when ocv should be disabled
  * @ocv_dis_low_soc:		the low soc percent when ocv should be enabled
+ * @high_ocv_correction_limit_uv:      the max amount of OCV corrections
+ *                                     allowed when ocv is high
+ *                                     (higher than 3.8V)
+ * @low_ocv_correction_limit_uv:       the max amount of OCV corrections
+ *                                     allowed when ocv is low
+ *                                     (lower or equal to 3.8V)
+ * @hold_soc_est:              the min est soc below which the calculated soc
+ *                             is allowed to go to 0%
  */
 struct pm8921_bms_platform_data {
 	struct pm8xxx_bms_core_data	bms_cdata;
@@ -65,7 +73,19 @@ struct pm8921_bms_platform_data {
 	int				disable_flat_portion_ocv;
 	int				ocv_dis_high_soc;
 	int				ocv_dis_low_soc;
+	int                             high_ocv_correction_limit_uv;
+	int                             low_ocv_correction_limit_uv;
+	int                             hold_soc_est;
 };
+
+/* OPPO 2013-01-14 chendx Add begin for get bms vbatt ocv */
+int get_bms_ocv_vbatt(int ibat_ua,int vbat_uv);
+/* OPPO 2013-01-14 chendx Add end for get bms vbatt ocv */
+
+//add for soc backup and read
+void backup_calib_soc(int calib_soc);
+int read_calib_soc(void);
+
 
 #if defined(CONFIG_PM8921_BMS) || defined(CONFIG_PM8921_BMS_MODULE)
 /**
