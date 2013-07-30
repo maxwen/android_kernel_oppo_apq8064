@@ -1,0 +1,5 @@
+config SN3193_SLED
+	tristate "SN3193 breath led Driver"
+	default y
+	help
+	  Say Y here to enable breath led.
