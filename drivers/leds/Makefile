@@ -18,7 +18,13 @@ obj-$(CONFIG_LEDS_COBALT_QUBE)		+= leds-cobalt-qube.o
 obj-$(CONFIG_LEDS_COBALT_RAQ)		+= leds-cobalt-raq.o
 obj-$(CONFIG_LEDS_SUNFIRE)		+= leds-sunfire.o
 obj-$(CONFIG_LEDS_PCA9532)		+= leds-pca9532.o
-obj-$(CONFIG_LEDS_PM8XXX)		+= leds-pm8xxx.o
+#wangjw add for button backlight
+ifeq ($(CONFIG_VENDOR_EDIT),y)
+    obj-$(CONFIG_LEDS_PM8XXX)		+= leds-pm8xxx-41.o
+else
+		obj-$(CONFIG_LEDS_PM8XXX)		+= leds-pm8xxx.o
+endif
+#wangjw add end
 obj-$(CONFIG_LEDS_QPNP)			+= leds-qpnp.o
 obj-$(CONFIG_LEDS_GPIO_REGISTER)	+= leds-gpio-register.o
 obj-$(CONFIG_LEDS_GPIO)			+= leds-gpio.o
