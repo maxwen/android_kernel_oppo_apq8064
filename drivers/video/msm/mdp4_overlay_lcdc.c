@@ -245,12 +245,15 @@ int mdp4_lcdc_pipe_commit(int cndx, int wait)
 				/* pipe not unset */
 				mdp4_overlay_vsync_commit(pipe);
 			}
+//yanghai add the iommu patch 2013.5.25	
+#ifndef CONFIG_VENDOR_EDIT			
 			/* free previous iommu to freelist
 			 * which will be freed at next
 			 * pipe_commit
 			 */
 			mdp4_overlay_iommu_pipe_free(pipe->pipe_ndx, 0);
 			pipe->pipe_used = 0; /* clear */
+#endif			
 		}
 	}
 
@@ -258,7 +261,37 @@ int mdp4_lcdc_pipe_commit(int cndx, int wait)
 
 	/* start timing generator & mmu if they are not started yet */
 	mdp4_overlay_lcdc_start();
+//yanghai add the iommu patch 2013.5.25	
+#ifdef CONFIG_VENDOR_EDIT
+       /*
+        * there has possibility that pipe commit come very close to next vsync
+        * this may cause two consecutive pie_commits happen within same vsync
+        * period which casue iommu page fault when previous iommu buffer
+        * freed. Set ION_IOMMU_UNMAP_DELAYED flag at ion_map_iommu() to
+        * add delay unmap iommu buffer to fix this problem.
+        * Also ion_unmap_iommu() may take as long as 9 ms to free an ion buffer.
+        * therefore mdp4_overlay_iommu_unmap_freelist(mixer) should be called
+        * ater stage_commit() to ensure pipe_commit (up to stage_commit)
+        * is completed within vsync period.
+        */
 
+       /* free previous committed iommu back to pool */
+       mdp4_overlay_iommu_unmap_freelist(mixer);
+
+       pipe = vp->plist;
+       for (i = 0; i < OVERLAY_PIPE_MAX; i++, pipe++) {
+               if (pipe->pipe_used) {
+                       /* free previous iommu to freelist
+                       * which will be freed at next
+                       * pipe_commit
+                       */
+                       mdp4_overlay_iommu_pipe_free(pipe->pipe_ndx, 0);
+                       pipe->pipe_used = 0; /* clear */
+               }
+       }
+
+#endif
+//yanghai add end
 	pipe = vctrl->base_pipe;
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
 	if (pipe->ov_blt_addr) {
@@ -408,14 +441,44 @@ ssize_t mdp4_lcdc_show_event(struct device *dev,
 	ssize_t ret = 0;
 	unsigned long flags;
 	u64 vsync_tick;
-
+//yanghai add the iommu patch 2013.5.25	
+#ifdef CONFIG_VENDOR_EDIT
+       ktime_t ctime;
+       u32 ctick, ptick;
+       int diff;
+#endif 
+//yanghai add end
 	cndx = 0;
 	vctrl = &vsync_ctrl_db[0];
 
 	if (atomic_read(&vctrl->suspend) > 0 ||
 		atomic_read(&vctrl->vsync_resume) == 0)
 		return 0;
-
+//yanghai add the iommu patch 2013.5.25	
+#ifdef CONFIG_VENDOR_EDIT
+       /*
+        * show_event thread keep spinning on vctrl->vsync_comp
+        * race condition on x.done if multiple thread blocked
+        * at wait_for_completion(&vctrl->vsync_comp)
+        *
+        * if show_event thread waked up first then it will come back
+        * and call INIT_COMPLETION(vctrl->vsync_comp) which set x.done = 0
+        * then second thread wakeed up which set x.done = 0x7ffffffd
+        * after that wait_for_completion will never wait.
+        * To avoid this, force show_event thread to sleep 5 ms here
+        * since it has full vsycn period (16.6 ms) to wait
+        */
+       ctime = ktime_get();
+       ctick = (u32)ktime_to_us(ctime);
+       ptick = (u32)ktime_to_us(vctrl->vsync_time);
+       ptick += 5000;  /* 5ms */
+       diff = ptick - ctick;
+       if (diff > 0) {
+               if (diff > 1000) /* 1 ms */
+                       diff = 1000;
+               usleep(diff);
+       }
+#endif	   
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
 	if (vctrl->wait_vsync_cnt == 0)
 		INIT_COMPLETION(vctrl->vsync_comp);
@@ -734,7 +797,11 @@ int mdp4_lcdc_off(struct platform_device *pdev)
 	atomic_set(&vctrl->vsync_resume, 0);
 
 	complete_all(&vctrl->vsync_comp);
-
+//yanghai add the iommu patch 2013.5.25	
+#ifdef CONFIG_VENDOR_EDIT	
+	vctrl->wait_vsync_cnt = 0;
+#endif 
+//yanghai add end
 	if (pipe->ov_blt_addr) {
 		spin_lock_irqsave(&vctrl->spin_lock, flags);
 		if (vctrl->ov_koff != vctrl->ov_done)
@@ -854,12 +921,17 @@ void mdp4_primary_vsync_lcdc(void)
 
 	spin_lock(&vctrl->spin_lock);
 	vctrl->vsync_time = ktime_get();
-
+//yanghai add the iommu patch 2013.5.25	
+#ifndef CONFIG_VENDOR_EDIT
 	if (vctrl->wait_vsync_cnt) {
 		complete_all(&vctrl->vsync_comp);
 		vctrl->wait_vsync_cnt = 0;
 	}
-
+#else
+       complete_all(&vctrl->vsync_comp);
+       vctrl->wait_vsync_cnt = 0;
+#endif
+//yanghai add end
 	spin_unlock(&vctrl->spin_lock);
 }
 

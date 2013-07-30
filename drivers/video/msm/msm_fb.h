@@ -47,6 +47,12 @@
 #include "msm_fb_panel.h"
 #include "mdp.h"
 
+/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
+#ifdef CONFIG_VENDOR_EDIT	
+#define SPLASH_SCREEN_BUFFER_FOR_1080P
+#endif
+/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
+
 #define MSM_FB_DEFAULT_PAGE_SIZE 2
 #define MFD_KEY  0x11161126
 #define MSM_FB_MAX_DEV_LIST 32
@@ -214,7 +220,15 @@ struct msm_fb_data_type {
 	boolean panel_driver_on;
 	int vsync_sysfs_created;
 	void *copy_splash_buf;
+/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
+#ifdef CONFIG_VENDOR_EDIT
+#ifdef SPLASH_SCREEN_BUFFER_FOR_1080P
+	dma_addr_t copy_splash_phys;
+#else	
 	unsigned char *copy_splash_phys;
+#endif
+#endif
+/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
 	uint32 sec_mapped;
 	uint32 sec_active;
 };
@@ -253,6 +267,12 @@ int msm_fb_check_frame_rate(struct msm_fb_data_type *mfd,
 
 #ifdef CONFIG_FB_MSM_LOGO
 #define INIT_IMAGE_FILE "/initlogo.rle"
+/* OPPO 2012-11-30 zhengzk add for porting */
+#define	INIT_IMAGE_WLAN "wlan.rle"
+#define	INIT_IMAGE_RF "rf.rle"
+#define	INIT_IMAGE_FASTBOOT "fastboot.rle"
+#define	INIT_IMAGE_AT "at.rle"
+/* OPPO 2012-11-30 zhengzk add for porting */
 int load_565rle_image(char *filename, bool bf_supported);
 #endif
 

@@ -526,7 +526,13 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 	outpdw(MDP_INTR_CLEAR, isr);
 
 	if (isr & INTR_PRIMARY_INTF_UDERRUN) {
+/* OPPO 2012-12-06 zhengzk Modify begin for print underrun info */
+#ifndef CONFIG_VENDOR_EDIT
 		pr_debug("%s: UNDERRUN -- primary\n", __func__);
+#else
+		pr_err("%s: UNDERRUN -- primary, cnt=%lu\n", __func__, mdp4_stat.intr_underrun_p);
+#endif
+/* OPPO 2012-12-06 zhengzk Modify end */
 		mdp4_stat.intr_underrun_p++;
 		/* When underun occurs mdp clear the histogram registers
 		that are set before in hw_init so restore them back so

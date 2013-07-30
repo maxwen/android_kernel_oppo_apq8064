@@ -197,5 +197,8 @@ endif
 
 obj-$(CONFIG_MSM_VIDC_1080P) += vidc/
 obj-$(CONFIG_MSM_VIDC_720P) += vidc/
+# OPPO 2012-08-10 zhengzk added begin for lm3528
+obj-$(CONFIG_FB_MSM_MIPI_BACKLIGHT_LM3528) += lm3528.o
+# OPPO 2012-08-10 zhengzk added end
 clean:
 	rm *.o .*cmd

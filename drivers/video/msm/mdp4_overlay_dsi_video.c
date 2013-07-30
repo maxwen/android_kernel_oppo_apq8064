@@ -101,9 +101,11 @@ static void mdp4_overlay_dsi_video_start(void)
 {
 	if (!dsi_video_enabled) {
 		/* enable DSI block */
+/* OPPO 3013-06-06 Gousj modify for LCD Stuck*/
 		mdp4_iommu_attach();
 		mdp_pipe_ctrl(MDP_OVERLAY0_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 		MDP_OUTP(MDP_BASE + DSI_VIDEO_BASE, 1);
+/* OPPO 3013-06-06 Gousj modify end*/
 		dsi_video_enabled = 1;
 	}
 }
@@ -207,10 +209,13 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait)
 			mdp4_free_writeback_buf(vctrl->mfd, mixer);
 	}
 	mutex_unlock(&vctrl->update_lock);
-
+	
+//yanghai add the iommu patch 2013.5.25	
+#ifndef CONFIG_VENDOR_EDIT
 	/* free previous committed iommu back to pool */
 	mdp4_overlay_iommu_unmap_freelist(mixer);
-
+#endif
+//yanghai add end
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
 	if (vctrl->ov_koff != vctrl->ov_done) {
 		spin_unlock_irqrestore(&vctrl->spin_lock, flags);
@@ -239,9 +244,49 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait)
 			cnt++;
 			real_pipe = mdp4_overlay_ndx2pipe(pipe->pipe_ndx);
 			if (real_pipe && real_pipe->pipe_used) {
+//yanghai add the iommu patch 2013.5.25	
+#ifndef CONFIG_VENDOR_EDIT
 				/* pipe not unset */
+#else
+                              /*
+                               * commit pipes which are in pending queue
+                               * and not be unset yet
+                               */
+#endif
+//yanghai add end
 				mdp4_overlay_vsync_commit(pipe);
 			}
+
+//yanghai add the iommu patch 2013.5.25	
+#ifdef CONFIG_VENDOR_EDIT
+               }
+       }
+
+       mdp4_mixer_stage_commit(mixer);
+
+       /* start timing generator & mmu if they are not started yet */
+       mdp4_overlay_dsi_video_start();
+
+       /*
+        * there has possibility that pipe commit come very close to next vsync
+        * this may cause two consecutive pie_commits happen within same vsync
+        * period which casue iommu page fault when previous iommu buffer
+        * freed. Set ION_IOMMU_UNMAP_DELAYED flag at ion_map_iommu() to
+        * add delay unmap iommu buffer to fix this problem.
+        * Also ion_unmap_iommu() may take as long as 9 ms to free an ion buffer.
+        * therefore mdp4_overlay_iommu_unmap_freelist(mixer) should be called
+        * ater stage_commit() to ensure pipe_commit (up to stage_commit)
+        * is completed within vsync period.
+        */
+
+       /* free previous committed iommu back to pool */
+       mdp4_overlay_iommu_unmap_freelist(mixer);
+
+       pipe = vp->plist;
+       for (i = 0; i < OVERLAY_PIPE_MAX; i++, pipe++) {
+               if (pipe->pipe_used) {
+#endif
+//yanghai add end
 			/* free previous iommu to freelist
 			* which will be freed at next
 			* pipe_commit
@@ -250,12 +295,14 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait)
 			pipe->pipe_used = 0; /* clear */
 		}
 	}
-
+//yanghai add the iommu patch 2013.5.25	
+#ifndef CONFIG_VENDOR_EDIT
 	mdp4_mixer_stage_commit(mixer);
 
 	/* start timing generator & mmu if they are not started yet */
 	mdp4_overlay_dsi_video_start();
-
+#endif
+//yanghai add end
 	pipe = vctrl->base_pipe;
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
 	if (pipe->ov_blt_addr) {
@@ -356,8 +403,14 @@ void mdp4_dsi_video_wait4vsync(int cndx)
 
 	vctrl->wait_vsync_cnt++;
 	spin_unlock_irqrestore(&vctrl->spin_lock, flags);
-
-	wait_for_completion(&vctrl->vsync_comp);
+/* OPPO 3013-04-18 Gousj modify for black screen when phone call come*/
+	/* wait_for_completion(&vctrl->vsync_comp)
+	*	have no timeout
+	*/
+	if (!wait_for_completion_timeout(
+			&vctrl->vsync_comp, msecs_to_jiffies(100)))
+		pr_err("%s %d  TIMEOUT_\n", __func__, __LINE__);
+/* OPPO 3013-04-18 Gousj modify for black screen when phone call come*/
 	mdp4_video_vsync_irq_ctrl(cndx, 0);
 	mdp4_stat.wait4vsync0++;
 }
@@ -424,14 +477,45 @@ ssize_t mdp4_dsi_video_show_event(struct device *dev,
 	ssize_t ret = 0;
 	unsigned long flags;
 	u64 vsync_tick;
-
+//yanghai add the iommu patch 2013.5.25	
+#ifdef CONFIG_VENDOR_EDIT
+	ktime_t ctime;
+       u32 ctick, ptick;
+       int diff;
+#endif
+//yanghai add
 	cndx = 0;
 	vctrl = &vsync_ctrl_db[0];
 
 	if (atomic_read(&vctrl->suspend) > 0 ||
 		atomic_read(&vctrl->vsync_resume) == 0)
 		return 0;
-
+//yanghai add the iommu patch 2013.5.25	
+#ifdef CONFIG_VENDOR_EDIT	
+       /*
+        * show_event thread keep spinning on vctrl->vsync_comp
+        * race condition on x.done if multiple thread blocked
+        * at wait_for_completion(&vctrl->vsync_comp)
+        *
+        * if show_event thread waked up first then it will come back
+        * and call INIT_COMPLETION(vctrl->vsync_comp) which set x.done = 0
+        * then second thread wakeed up which set x.done = 0x7ffffffd
+        * after that wait_for_completion will never wait.
+        * To avoid this, force show_event thread to sleep 5 ms here
+        * since it has full vsycn period (16.6 ms) to wait
+        */
+       ctime = ktime_get();
+       ctick = (u32)ktime_to_us(ctime);
+       ptick = (u32)ktime_to_us(vctrl->vsync_time);
+       ptick += 5000;  /* 5ms */
+       diff = ptick - ctick;
+       if (diff > 0) {
+               if (diff > 1000) /* 1 ms */
+                       diff = 1000;
+               usleep(diff);
+       }
+#endif
+//yanghai add end
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
 	if (vctrl->wait_vsync_cnt == 0)
 		INIT_COMPLETION(vctrl->vsync_comp);
@@ -505,7 +589,8 @@ static void mdp4_dsi_video_tg_off(struct vsycn_ctrl *vctrl)
 
 	mdp4_dsi_video_wait4vsync(0);
 }
-
+/* OPPO Neal modify for blurred screen*/
+extern int mipi_dsi_panel_power(int on);
 int mdp4_dsi_video_splash_done(void)
 {
 	struct vsycn_ctrl *vctrl;
@@ -514,11 +599,12 @@ int mdp4_dsi_video_splash_done(void)
 	vctrl = &vsync_ctrl_db[cndx];
 
 	mdp4_dsi_video_tg_off(vctrl);
+	mipi_dsi_panel_power(0);
 	mipi_dsi_controller_cfg(0);
 
 	return 0;
 }
-
+/* OPPO Neal modify end*/
 int mdp4_dsi_video_on(struct platform_device *pdev)
 {
 	int dsi_width;
@@ -758,7 +844,10 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 	atomic_set(&vctrl->vsync_resume, 0);
 
 	complete_all(&vctrl->vsync_comp);
-
+//yanghai add the iommu patch 2013.5.25	
+#ifdef CONFIG_VENDOR_EDIT	
+	vctrl->wait_vsync_cnt = 0;
+#endif
 	if (pipe->ov_blt_addr) {
 		spin_lock_irqsave(&vctrl->spin_lock, flags);
 		if (vctrl->ov_koff != vctrl->ov_done)
@@ -980,12 +1069,20 @@ void mdp4_primary_vsync_dsi_video(void)
 	pr_debug("%s: cpu=%d\n", __func__, smp_processor_id());
 
 	spin_lock(&vctrl->spin_lock);
+//yanghai add the iommu patch 2013.5.25	
+#ifndef CONFIG_VENDOR_EDIT	
 	vctrl->vsync_time = ktime_get();
 
 	if (vctrl->wait_vsync_cnt) {
 		complete_all(&vctrl->vsync_comp);
 		vctrl->wait_vsync_cnt = 0;
 	}
+#else
+       vctrl->vsync_time = ktime_get();
+       complete_all(&vctrl->vsync_comp);
+       vctrl->wait_vsync_cnt = 0;
+#endif
+//yanghai add end
 	spin_unlock(&vctrl->spin_lock);
 }
 
