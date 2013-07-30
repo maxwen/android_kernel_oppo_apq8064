@@ -22,6 +22,13 @@
 
 #include <mach/cpuidle.h>
 
+/*OPPO 2012-12-10 zhzhyon Add for headset detect*/
+#ifdef CONFIG_VENDOR_EDIT
+#include <linux/wakelock.h>
+#endif
+/*OPPO 2012-12-10 zhzhyon Add end*/
+
+
 #define BYTE_BIT_MASK(nr)		(1UL << ((nr) % BITS_PER_BYTE))
 #define BIT_BYTE(nr)			((nr) / BITS_PER_BYTE)
 
@@ -183,6 +190,19 @@ static void wcd9xxx_irq_dispatch(struct wcd9xxx *wcd9xxx, int irqbit)
 	}
 }
 
+/*OPPO 2012-12-10 zhzhyon add for reason*/
+#ifdef CONFIG_VENDOR_EDIT
+static struct wake_lock wcd9xxx_wakelock;
+static irqreturn_t wcd9xxx_irq_handler(int irq, void *data)
+{
+	disable_irq_nosync(irq);
+	wake_lock(&wcd9xxx_wakelock);
+	
+	return IRQ_WAKE_THREAD;
+}
+#endif
+/*OPPO 2012-12-10 zhzhyon add end*/
+
 static irqreturn_t wcd9xxx_irq_thread(int irq, void *data)
 {
 	int ret;
@@ -192,7 +212,14 @@ static irqreturn_t wcd9xxx_irq_thread(int irq, void *data)
 
 	if (unlikely(wcd9xxx_lock_sleep(wcd9xxx) == false)) {
 		dev_err(wcd9xxx->dev, "Failed to hold suspend\n");
+		/*OPPO 2012-12-10 zhzhyon Modify for reason*/
+		#ifndef CONFIG_VENDOR_EDIT
 		return IRQ_NONE;
+		#else
+		ret = -1;
+		goto done;
+		#endif
+		/*OPPO 2012-12-10 zhzhyon Modify end*/
 	}
 	ret = wcd9xxx_bulk_read(wcd9xxx, TABLA_A_INTR_STATUS0,
 			       WCD9XXX_NUM_IRQ_REGS, status);
@@ -200,7 +227,14 @@ static irqreturn_t wcd9xxx_irq_thread(int irq, void *data)
 		dev_err(wcd9xxx->dev, "Failed to read interrupt status: %d\n",
 			ret);
 		wcd9xxx_unlock_sleep(wcd9xxx);
+		/*OPPO 2012-12-10 zhzhyon Modify for reason*/
+		#ifndef CONFIG_VENDOR_EDIT
 		return IRQ_NONE;
+		#else
+		ret = -1;
+		goto done;
+		#endif
+		/*OPPO 2012-12-10 zhzhyon Modify end*/
 	}
 	/* Apply masking */
 	for (i = 0; i < WCD9XXX_NUM_IRQ_REGS; i++)
@@ -227,6 +261,15 @@ static irqreturn_t wcd9xxx_irq_thread(int irq, void *data)
 			wcd9xxx_irq_dispatch(wcd9xxx, i);
 	}
 	wcd9xxx_unlock_sleep(wcd9xxx);
+	/*OPPO 2012-12-10 zhzhyon Add for headset detect*/
+	#ifdef CONFIG_VENDOR_EDIT
+done:
+	enable_irq(irq);
+	wake_unlock(&wcd9xxx_wakelock);
+	if(ret == -1)
+		return IRQ_NONE;
+	#endif
+	/*OPPO 2012-12-10 zhzhyon Add end*/
 
 	return IRQ_HANDLED;
 }
@@ -290,9 +333,18 @@ int wcd9xxx_irq_init(struct wcd9xxx *wcd9xxx)
 			wcd9xxx->irq_masks_cur[i]);
 	}
 
+	/*OPPO 2012-12-10 zhzhyon Modify for mic key*/
+	#ifndef CONFIG_VENDOR_EDIT
 	ret = request_threaded_irq(wcd9xxx->irq, NULL, wcd9xxx_irq_thread,
 				   IRQF_TRIGGER_HIGH | IRQF_ONESHOT,
 				   "wcd9xxx", wcd9xxx);
+	#else
+	wake_lock_init(&wcd9xxx_wakelock, WAKE_LOCK_SUSPEND,	"wcd9xxx_wakelock");
+	ret = request_threaded_irq(wcd9xxx->irq, wcd9xxx_irq_handler, wcd9xxx_irq_thread,
+				   IRQF_TRIGGER_HIGH | IRQF_ONESHOT,
+				   "wcd9xxx", wcd9xxx);	
+	#endif
+	/*OPPO 2012-12-10 zhzhyon Modify end*/
 	if (ret != 0)
 		dev_err(wcd9xxx->dev, "Failed to request IRQ %d: %d\n",
 			wcd9xxx->irq, ret);

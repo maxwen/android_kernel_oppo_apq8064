@@ -95,7 +95,14 @@
  * are disabled by default and must be turned on by calling
  * pm8xxx_batt_alarm_state_set.
  */
+/* OPPO 2013-01-05 chendx Add begin for battery voltage very low */
+#ifdef CONFIG_VENDOR_EDIT
+#define DEFAULT_THRESHOLD_LOWER		3550
+#else
 #define DEFAULT_THRESHOLD_LOWER		3200
+#endif
+/* OPPO 2013-01-05 chendx end begin for battery voltage very low */
+
 #define DEFAULT_THRESHOLD_UPPER		4300
 #define DEFAULT_HOLD_TIME		PM8XXX_BATT_ALARM_HOLD_TIME_16_MS
 #define DEFAULT_USE_PWM			1
