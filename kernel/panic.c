@@ -64,6 +64,10 @@ void __weak panic_smp_self_stop(void)
 	while (1)
 		cpu_relax();
 }
+/* OPPO 2012-10-11 chendx Add begin for debug tools */
+extern bool is_otrace_on(void);
+/* OPPO 2012-10-11 chendx Add end */
+
 
 /**
  *	panic - halt the system
@@ -89,6 +93,21 @@ void panic(const char *fmt, ...)
 	 * after the panic_lock is acquired) from invoking panic again.
 	 */
 	local_irq_disable();
+
+/* OPPO 2012-10-11 chendx Add begin for debug tools */
+    pr_info("kernel panic because of %s\n", fmt);
+
+	if(!is_otrace_on()) {
+		if (strcmp(fmt, "modem") == 0)
+        	kernel_restart("modem");
+    	else if (strcmp(fmt, "android") == 0)
+        	kernel_restart("android");
+    	else
+        	kernel_restart("kernel");
+	}
+/* OPPO 2012-10-11 chendx Add end */
+
+
 
 	/*
 	 * It's possible to come here directly from a panic-assertion and
@@ -428,6 +447,10 @@ static void warn_slowpath_common(const char *file, int line, void *caller,
 				 unsigned taint, struct slowpath_args *args)
 {
 	const char *board;
+/* OPPO 2013-07-01 huanggd Add for reduce printk rate*/	
+	if (!printk_ratelimit()) 
+		return;
+/* OPPO 2013-07-01 huanggd end*/	
 
 	printk(KERN_WARNING "------------[ cut here ]------------\n");
 	printk(KERN_WARNING "WARNING: at %s:%d %pS()\n", file, line, caller);
