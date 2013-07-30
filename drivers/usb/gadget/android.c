@@ -2144,6 +2144,7 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 	} else if (__ratelimit(&rl)) {
 		pr_err("android_usb: already %s\n",
 				dev->enabled ? "enabled" : "disabled");
+		pr_err("%s:pid=%d\n", __func__, get_current()->pid);
 	}
 
 	mutex_unlock(&dev->mutex);
