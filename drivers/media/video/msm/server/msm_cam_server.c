@@ -435,9 +435,10 @@ static int msm_server_control(struct msm_cam_server_dev *server_dev,
 	/* wait event may be interrupted by sugnal,
 	 * in this case -ERESTARTSYS is returned and retry is needed.
 	 * Now we only retry once. */
-	wait_count = 2;
+	wait_count = 1;
 	do {
-		rc = wait_event_interruptible_timeout(queue->wait,
+		//rc = wait_event_interruptible_timeout(queue->wait,
+		rc = wait_event_timeout(queue->wait,
 			!list_empty_careful(&queue->list),
 			msecs_to_jiffies(out->timeout_ms));
 		wait_count--;
@@ -486,6 +487,7 @@ static int msm_server_control(struct msm_cam_server_dev *server_dev,
 	return rc;
 
 ctrlcmd_alloc_fail:
+	mutex_unlock(&server_dev->server_queue_lock);
 	kfree(isp_event);
 isp_event_alloc_fail:
 	kfree(event_qcmd);
@@ -581,7 +583,7 @@ int msm_send_open_server(struct msm_cam_v4l2_device *pcam)
 	int idx = pcam->server_queue_idx;
 	D("%s qid %d\n", __func__, pcam->server_queue_idx);
 	ctrlcmd.type	   = MSM_V4L2_OPEN;
-	ctrlcmd.timeout_ms = 10000;
+	ctrlcmd.timeout_ms = 2000;//10000;
 	ctrlcmd.length = strnlen(
 		g_server_dev.config_info.config_dev_name[idx],
 		MAX_DEV_NAME_LEN)+1;
@@ -602,7 +604,7 @@ int msm_send_close_server(struct msm_cam_v4l2_device *pcam)
 	struct msm_ctrl_cmd ctrlcmd;
 	D("%s qid %d\n", __func__, pcam->server_queue_idx);
 	ctrlcmd.type	   = MSM_V4L2_CLOSE;
-	ctrlcmd.timeout_ms = 10000;
+	ctrlcmd.timeout_ms = 2000;//10000;
 	ctrlcmd.length	 = strnlen(g_server_dev.config_info.config_dev_name[
 				pcam->server_queue_idx], MAX_DEV_NAME_LEN)+1;
 	ctrlcmd.value    = (char *)g_server_dev.config_info.config_dev_name[
@@ -653,7 +655,7 @@ int msm_server_set_fmt(struct msm_cam_v4l2_device *pcam, int idx,
 	ctrlcmd.type       = MSM_V4L2_VID_CAP_TYPE;
 	ctrlcmd.length     = sizeof(struct img_plane_info);
 	ctrlcmd.value      = (void *)&plane_info;
-	ctrlcmd.timeout_ms = 10000;
+	ctrlcmd.timeout_ms = 2000;//10000;
 	ctrlcmd.vnode_id   = pcam->vnode_id;
 	ctrlcmd.queue_idx = pcam->server_queue_idx;
 	ctrlcmd.config_ident = g_server_dev.config_info.config_dev_id[0];
@@ -720,7 +722,7 @@ int msm_server_set_fmt_mplane(struct msm_cam_v4l2_device *pcam, int idx,
 	ctrlcmd.type       = MSM_V4L2_VID_CAP_TYPE;
 	ctrlcmd.length     = sizeof(struct img_plane_info);
 	ctrlcmd.value      = (void *)&plane_info;
-	ctrlcmd.timeout_ms = 10000;
+	ctrlcmd.timeout_ms = 2000;//10000;
 	ctrlcmd.vnode_id   = pcam->vnode_id;
 	ctrlcmd.queue_idx = pcam->server_queue_idx;
 
@@ -746,7 +748,7 @@ int msm_server_streamon(struct msm_cam_v4l2_device *pcam, int idx)
 	struct msm_ctrl_cmd ctrlcmd;
 	D("%s\n", __func__);
 	ctrlcmd.type	   = MSM_V4L2_STREAM_ON;
-	ctrlcmd.timeout_ms = 10000;
+	ctrlcmd.timeout_ms = 3000;//10000;
 	ctrlcmd.length	 = 0;
 	ctrlcmd.value    = NULL;
 	ctrlcmd.stream_type = pcam->dev_inst[idx]->image_mode;
@@ -767,7 +769,7 @@ int msm_server_streamoff(struct msm_cam_v4l2_device *pcam, int idx)
 
 	D("%s, pcam = 0x%x\n", __func__, (u32)pcam);
 	ctrlcmd.type        = MSM_V4L2_STREAM_OFF;
-	ctrlcmd.timeout_ms  = 10000;
+	ctrlcmd.timeout_ms  = 2000;//10000;
 	ctrlcmd.length      = 0;
 	ctrlcmd.value       = NULL;
 	ctrlcmd.stream_type = pcam->dev_inst[idx]->image_mode;
@@ -1098,14 +1100,17 @@ int msm_server_v4l2_unsubscribe_event(struct v4l2_fh *fh,
 		isp_event = (struct msm_isp_event_ctrl *)
 			(*((uint32_t *)ev.u.data));
 		if (isp_event) {
-			if (isp_event->isp_data.isp_msg.len != 0 &&
+			if (ev.type == (V4L2_EVENT_PRIVATE_START +
+						MSM_CAM_RESP_STAT_EVT_MSG)) {
+				if (isp_event->isp_data.isp_msg.len != 0 &&
 				isp_event->isp_data.isp_msg.data != NULL) {
-				kfree(isp_event->isp_data.isp_msg.data);
-				isp_event->isp_data.isp_msg.len = 0;
-				isp_event->isp_data.isp_msg.data = NULL;
+					kfree(isp_event->isp_data.isp_msg.data);
+					isp_event->isp_data.isp_msg.len = 0;
+					isp_event->isp_data.isp_msg.data = NULL;
+				}
+				kfree(isp_event);
+				*((uint32_t *)ev.u.data) = 0;
 			}
-			kfree(isp_event);
-			*((uint32_t *)ev.u.data) = 0;
 		}
 	}
 
@@ -1791,6 +1796,10 @@ static void msm_cam_server_subdev_notify(struct v4l2_subdev *sd,
 	case NOTIFY_VFE_MSG_COMP_STATS:
 	case NOTIFY_VFE_BUF_EVT:
 		p_mctl = msm_cam_server_get_mctl(mctl_handle);
+		if (p_mctl == NULL) {
+			pr_err("%s: Not find p_mctl instance!\n", __func__);
+			return;
+		}
 		if (p_mctl && p_mctl->isp_notify && p_mctl->vfe_sdev)
 			rc = p_mctl->isp_notify(p_mctl,
 				p_mctl->vfe_sdev, notification, arg);
@@ -2730,6 +2739,7 @@ int msm_server_send_ctrl(struct msm_ctrl_cmd *out,
 	return rc;
 
 ctrlcmd_alloc_fail:
+	mutex_unlock(&server_dev->server_queue_lock);
 	kfree(isp_event);
 isp_event_alloc_fail:
 	kfree(event_qcmd);
@@ -2819,6 +2829,11 @@ static int msm_open_config(struct inode *inode, struct file *fp)
 	config_cam->use_count++;
 
 	/* assume there is only one active camera possible*/
+	if (!g_server_dev.pcam_active[config_cam->dev_num]) {
+		pr_err("%s: camera %d is not active\n", __func__, config_cam->dev_num);
+		config_cam->use_count--;
+		return -ENODEV;
+	}
 	config_cam->p_mctl = msm_cam_server_get_mctl(
 		g_server_dev.pcam_active[config_cam->dev_num]->mctl_handle);
 	if (!config_cam->p_mctl) {
@@ -3044,6 +3059,8 @@ static long msm_ioctl_config(struct file *fp, unsigned int cmd,
 						break;
 					}
 					kfree(k_msg_value);
+					k_isp_event->isp_data.isp_msg.len = 0;
+					k_isp_event->isp_data.isp_msg.data = 0;
 					k_msg_value = NULL;
 				}
 			}
@@ -3057,6 +3074,7 @@ static long msm_ioctl_config(struct file *fp, unsigned int cmd,
 			break;
 		}
 		kfree(k_isp_event);
+		*((uint32_t *)ev.u.data) = 0;
 		k_isp_event = NULL;
 
 		/* Copy the v4l2_event structure back to the user*/
