@@ -1447,6 +1447,11 @@ msmsdcc_pio_write(struct msmsdcc_host *host, char *buffer,
 {
 	void __iomem *base = host->base;
 	char *ptr = buffer;
+/* OPPO 2013-7-18 Modify by yansen for improve efficiency, make use of full empty fifo. 
+	insert a basedata sqlite from 49ms to 39ms
+	insert 100 Contacts from 4430ms to 3575ms
+	begin */
+#if 0
 	unsigned int maxcnt = MCI_FIFOHALFSIZE;
 
 	while (readl_relaxed(base + MMCISTATUS) &
@@ -1463,6 +1468,28 @@ msmsdcc_pio_write(struct msmsdcc_host *host, char *buffer,
 		if (remain == 0)
 			break;
 	}
+#else
+	unsigned int status = readl_relaxed(base + MMCISTATUS);
+
+	while (status & (MCI_TXFIFOEMPTY | MCI_TXFIFOHALFEMPTY)) {
+		unsigned int count, maxcnt, sz;
+
+		maxcnt = status & MCI_TXFIFOEMPTY ? MCI_FIFOSIZE :
+					MCI_FIFOHALFSIZE;
+		count = min(remain, maxcnt);
+
+		sz = count % 4 ? (count >> 2) + 1 : (count >> 2);
+		writesl(base + MMCIFIFO, ptr, sz);
+		ptr += count;
+		remain -= count;
+
+		if (remain == 0)
+			break;
+
+		status = readl_relaxed(base + MMCISTATUS);
+	}
+#endif
+/* OPPO 2013-7-18 Modify by yansen end */
 	mb();
 
 	return ptr - buffer;
