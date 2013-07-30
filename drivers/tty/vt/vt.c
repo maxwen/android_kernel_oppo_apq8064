@@ -2711,6 +2711,154 @@ static int con_write(struct tty_struct *tty, const unsigned char *buf, int count
 	return retval;
 }
 
+/* OPPO 2012-10-11 chendx Add begin for OPPO debug tools */
+#ifdef CONFIG_OPPO_DEBUG_ASSERT
+
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+extern int fbcon_takeover_global(int show_logo) ;
+#endif
+
+#define PRINT_LCD_BUFFER_SIZE 1000
+static int s_print_to_lcd_flag = 0;
+static char s_printlcd_buffer[PRINT_LCD_BUFFER_SIZE] = {0};
+static int s_print_buf_len = 0;
+static char *s_print_buf = s_printlcd_buffer;
+
+void console_activate(void)
+{
+	console_lock();
+	if (vc_allocate(MAX_NR_CONSOLES-1))
+		goto err;
+	if (set_console(MAX_NR_CONSOLES-1))
+		goto err;
+	console_unlock();
+		printk("console_activate: 222222\n");
+
+	if (vt_waitactive(MAX_NR_CONSOLES))
+		pr_warning("console_early_suspend: Can't switch VCs.\n");
+	printk("console_activate: 3333\n");
+	return;
+err:
+		printk("console_activate: 44444444\n");
+
+	pr_warning("console_early_suspend: Can't set console\n");
+	console_unlock();
+}
+int oppo_con_write(const unsigned char *buf, int count)
+{
+	struct tty_struct * tty = NULL;
+	struct file	*filp = NULL;
+	struct tty_file_private *priv;
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+      fbcon_takeover_global(1);
+#endif
+	console_activate();
+
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+#ifndef CONFIG_FB_BACKLIGHT
+    //otracer_lcd_backlight_en();
+#endif
+#endif
+
+	filp = filp_open("/dev/tty0", O_RDWR , 0);
+	if (IS_ERR(filp))
+	{
+		return -1;
+	}
+
+	priv = (struct tty_file_private *)filp->private_data;
+	tty = priv->tty;
+	return  con_write(tty,buf,count);
+}
+EXPORT_SYMBOL(oppo_con_write);
+
+int oppo_assert_print(char * file, char *func,int line)
+{
+#define OPPO_ASSERT_PREFIX "<oppo error!!!!> "
+	char pr_buffer[500];
+	char pr_line[30];
+	memset(pr_buffer,0,sizeof(pr_buffer));
+	memset(pr_line,0,sizeof(pr_line));
+	strcpy(pr_buffer,OPPO_ASSERT_PREFIX);
+	if(file)
+	{
+		strcat(pr_buffer,"file: ");
+		strcat(pr_buffer,file);
+	}
+	if(func)
+	{
+		strcat(pr_buffer," func: ");
+		strcat(pr_buffer,func);
+	}
+	if( line >= 0 )
+	{
+		sprintf(pr_line," line: %d \n",line);
+		strcat(pr_buffer,pr_line);
+	}
+	return oppo_con_write(pr_buffer,strlen(pr_buffer));	
+}
+EXPORT_SYMBOL(oppo_assert_print);
+
+int oppo_init_kernel_print_to_lcd(void)
+{
+	s_print_to_lcd_flag = 1;
+	return 0;
+}
+EXPORT_SYMBOL(oppo_init_kernel_print_to_lcd);
+
+int oppo_printk_to_lcd(const unsigned char *buf, int count)
+{
+	
+	
+	int copylen = 0;
+	if(!s_print_to_lcd_flag)
+	{
+		return 0;
+	}
+	if(!buf || (count <= 0) )
+	{
+		return 0;
+	}
+
+	if(0==s_print_buf_len )
+	{
+		memset(s_printlcd_buffer,0,PRINT_LCD_BUFFER_SIZE);
+	}
+
+	copylen = PRINT_LCD_BUFFER_SIZE -s_print_buf_len;
+	copylen = (count < copylen)?count:copylen ;
+	memcpy(s_print_buf,buf,copylen);
+	s_print_buf_len += copylen;
+	s_print_buf += copylen;
+
+	if(PRINT_LCD_BUFFER_SIZE == s_print_buf_len )
+	{
+		s_printlcd_buffer[PRINT_LCD_BUFFER_SIZE-1] = 0;
+	}
+	return 0;	
+}
+EXPORT_SYMBOL(oppo_printk_to_lcd);
+
+int oppo_finalize_print_to_lcd(void)
+{
+	int ret = 0;
+
+
+	s_print_to_lcd_flag = 0;
+	if(s_print_buf_len > 0)
+	{
+		s_printlcd_buffer[s_print_buf_len-1] = 0;
+		ret = oppo_con_write(s_printlcd_buffer,s_print_buf_len );
+	}
+	s_print_buf = s_printlcd_buffer;
+	s_print_buf_len = 0;
+	return ret;
+}
+EXPORT_SYMBOL(oppo_finalize_print_to_lcd);
+
+#endif
+/* OPPO 2012-10-11 chendx Add end */
+
 static int con_put_char(struct tty_struct *tty, unsigned char ch)
 {
 	if (in_interrupt())
