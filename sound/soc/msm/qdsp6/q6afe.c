@@ -74,8 +74,11 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 		/* payload[1] contains the error status for response */
 		if (payload[1] != 0) {
 			atomic_set(&this_afe.status, -1);
-			pr_err("%s: cmd = 0x%x returned error = 0x%x\n",
+/* OPPO 2013-04-24 huanggd Modify for reduce printk rate*/			
+			if (printk_ratelimit())			
+				pr_err("%s: cmd = 0x%x returned error = 0x%x\n",
 					__func__, payload[0], payload[1]);
+/* OPPO 2013-04-24 huanggd Modify end*/				
 		}
 		if (data->opcode == APR_BASIC_RSP_RESULT) {
 			switch (payload[0]) {
@@ -106,8 +109,11 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 				port_id = RT_PROXY_PORT_001_RX;
 				break;
 			default:
-				pr_err("Unknown cmd 0x%x\n",
+/* OPPO 2013-04-24 huanggd Modify for reduce printk rate*/			
+				if (printk_ratelimit())					
+					pr_err("Unknown cmd 0x%x\n",
 						payload[0]);
+/* OPPO 2013-04-24 huanggd Modify end*/					
 				break;
 			}
 		} else if (data->opcode == AFE_EVENT_RT_PROXY_PORT_STATUS) {
