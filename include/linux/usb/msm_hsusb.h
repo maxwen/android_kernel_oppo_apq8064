@@ -87,7 +87,13 @@ enum msm_usb_phy_type {
 	SNPS_28NM_INTEGRATED_PHY,
 };
 
+/* OPPO 2012-08-07 chendx Modify begin for DCP MAX input current to 1000mA  */
+#if 0
 #define IDEV_CHG_MAX	1500
+#else
+#define IDEV_CHG_MAX	1100	
+#endif
+/* OPPO 2012-08-07 chendx Modify end */
 #define IDEV_CHG_MIN	500
 #define IUNIT		100
 
@@ -145,6 +151,10 @@ enum usb_chg_type {
 	USB_INVALID_CHARGER = 0,
 	USB_SDP_CHARGER,
 	USB_DCP_CHARGER,
+	/* OPPO 2012-08-07 chendx Add begin for reason */
+	USB_NON_DCP_CHARGER,
+	USB_HDMI_CHARGER,
+	/* OPPO 2012-08-07 chendx Add end */
 	USB_CDP_CHARGER,
 	USB_ACA_A_CHARGER,
 	USB_ACA_B_CHARGER,
@@ -329,6 +339,9 @@ struct msm_otg {
 	struct delayed_work chg_work;
 	struct delayed_work pmic_id_status_work;
 	struct delayed_work check_ta_work;
+/* OPPO 2012-08-09 chendx Add begin for nonstanard detect */
+	struct delayed_work nonstandard_detect_work;
+/* OPPO 2012-08-09 chendx Add end */
 	enum usb_chg_state chg_state;
 	enum usb_chg_type chg_type;
 	unsigned dcd_time;
