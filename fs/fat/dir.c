@@ -484,7 +484,11 @@ static int __fat_readdir(struct inode *inode, struct file *filp, void *dirent,
 	loff_t cpos;
 	int chi, chl, i, i2, j, last, last_u, dotoffset = 0, fill_len = 0;
 	int ret = 0;
-
+/* OPPO,Jiangsm  Modify begin for show shortname when the len of longname is more than 255,2013-1-26  */
+#ifdef CONFIG_VENDOR_EDIT
+	unsigned char only_shortname = 0;
+#endif
+/*OPPO,Jiangsm add end*/
 	lock_super(sb);
 
 	cpos = filp->f_pos;
@@ -512,6 +516,11 @@ get_new:
 	if (fat_get_entry(inode, &cpos, &bh, &de) == -1)
 		goto end_of_dir;
 parse_record:
+/* OPPO,Jiangsm  Modify begin for show shortname when the len of longname is more than 255,2013-1-26  */
+#ifdef CONFIG_VENDOR_EDIT
+	only_shortname = 0;
+#endif
+/* OPPO,Jiangsm  Add end */
 	nr_slots = 0;
 	/*
 	 * Check for long filename entry, but if short_only, we don't
@@ -551,8 +560,18 @@ parse_record:
 			fill_name = longname;
 			fill_len = len;
 			/* !both && !short_only, so we don't need shortname. */
+/* OPPO,Jiangsm  Modify begin for show shortname when the len of longname is more than 255,2013-1-26  */
+#ifndef CONFIG_VENDOR_EDIT
 			if (!both)
 				goto start_filldir;
+#else
+			if (fill_len <= FAT_LFN_LEN && !both)
+				goto start_filldir;
+
+			if (fill_len > FAT_LFN_LEN)
+				only_shortname = 1;
+#endif
+/* OPPO,Jiangsm Modify end */
 		}
 	}
 
@@ -624,7 +643,13 @@ parse_record:
 		bufuname[j] = 0x0000;
 		i = fat_uni_to_x8(sb, bufuname, bufname, sizeof(bufname));
 	}
+/* OPPO,Jiangsm  Modify begin for show shortname when the len of longname is more than 255,2013-1-26  */
+#ifndef CONFIG_VENDOR_EDIT
 	if (nr_slots) {
+#else
+	if (nr_slots && !only_shortname) {
+#endif
+/* OPPO,Jiangsm Modify end */
 		/* hack for fat_ioctl_filldir() */
 		struct fat_ioctl_filldir_callback *p = dirent;
 
