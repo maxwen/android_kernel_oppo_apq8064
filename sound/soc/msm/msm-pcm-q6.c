@@ -577,7 +577,14 @@ static int msm_pcm_close(struct snd_pcm_substream *substream)
 	int ret = 0;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+	{
+		/*OPPO 2013-05-14 zhzhyon Add for qualcomm patch for audio block*/
+		#ifdef CONFIG_VENDOR_EDIT
+		pm_qos_update_request(&substream->latency_pm_qos_req, 0);
+		#endif
+		/*OPPO 2013-05-14 zhzhyon Add end*/
 		ret = msm_pcm_playback_close(substream);
+	}
 	else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 		ret = msm_pcm_capture_close(substream);
 	return ret;
@@ -587,7 +594,14 @@ static int msm_pcm_prepare(struct snd_pcm_substream *substream)
 	int ret = 0;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+	{
+		/*OPPO 2013-05-14 zhzhyon Add for qualcomm patch for audio block*/
+		#ifdef CONFIG_VENDOR_EDIT
+		pm_qos_update_request(&substream->latency_pm_qos_req, 1299);
+		#endif
+		/*OPPO 2013-05-14 zhzhyon Add end*/
 		ret = msm_pcm_playback_prepare(substream);
+	}
 	else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 		ret = msm_pcm_capture_prepare(substream);
 	return ret;
