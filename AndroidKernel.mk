@@ -78,6 +78,27 @@ $(TARGET_PREBUILT_INT_KERNEL): $(KERNEL_OUT) $(KERNEL_CONFIG) $(KERNEL_HEADERS_I
 $(KERNEL_HEADERS_INSTALL): $(KERNEL_OUT) $(KERNEL_CONFIG)
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- headers_install
 
+
+# add special build for kernel by Andy.
+kernel_clean:
+	$(hide) rm -rf $(KERNEL_OUT)
+	$(hide) rm -rf $(PRODUCT_OUT)/kernel
+
+kernel_new: kernel_clean $(KERNEL_OUT) $(KERNEL_CONFIG)
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
+	cp $(TARGET_PREBUILT_INT_KERNEL) $(PRODUCT_OUT)/kernel
+	mkdir -p $(KERNEL_OUT)/../../system/lib/modules
+
+kernel_remake: $(KERNEL_OUT) $(KERNEL_CONFIG)
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
+	cp $(TARGET_PREBUILT_INT_KERNEL) $(PRODUCT_OUT)/kernel
+	mkdir -p $(KERNEL_OUT)/../../system/lib/modules
+
+kernel_modules: $(KERNEL_OUT) $(KERNEL_CONFIG)
+	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- modules
+	mkdir -p $(KERNEL_OUT)/../../system/lib/modules
+# end by Andy.
+
 kerneltags: $(KERNEL_OUT) $(KERNEL_CONFIG)
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- tags
 
