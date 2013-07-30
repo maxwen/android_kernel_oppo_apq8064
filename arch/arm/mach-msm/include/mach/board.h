@@ -84,6 +84,9 @@ struct msm_camera_legacy_device_platform_data {
 #define MSM_CAMERA_FLASH_SRC_EXT     (0x00000001<<3)
 #define MSM_CAMERA_FLASH_SRC_LED (0x00000001<<3)
 #define MSM_CAMERA_FLASH_SRC_LED1 (0x00000001<<4)
+/* OPPO 2013-02-04 kangjian added begin for led */
+#define MSM_CAMERA_FLASH_SRC_OPPO (0x00000001<<7)
+/* OPPO 2013-02-04 kangjian added end */
 
 struct msm_camera_sensor_flash_pmic {
 	uint8_t num_of_src;
@@ -126,6 +129,13 @@ struct msm_camera_sensor_flash_led {
 	const int led_name_len;
 };
 
+/* OPPO 2013-02-04 kangjian added begin for led */
+struct msm_camera_sensor_flash_oppo {
+	uint32_t low_current;
+	uint32_t high_current;
+	int (*led_control)(unsigned state);
+};
+/* OPPO 2013-02-04 kangjian added end */
 struct msm_camera_sensor_flash_src {
 	int flash_sr_type;
 
@@ -137,6 +147,9 @@ struct msm_camera_sensor_flash_src {
 		struct msm_camera_sensor_flash_external
 			ext_driver_src;
 		struct msm_camera_sensor_flash_led led_src;
+/* OPPO 2013-02-04 kangjian added begin for led */
+		struct msm_camera_sensor_flash_oppo oppo_src;
+/* OPPO 2013-02-04 kangjian added end */
 	} _fsrc;
 };
 
@@ -395,8 +408,11 @@ struct msm_panel_common_pdata {
 	u32 ov1_wb_size;  /* overlay1 writeback size */
 	u32 mem_hid;
 	char cont_splash_enabled;
+/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
+#ifdef CONFIG_VENDOR_EDIT	
 	u32 splash_screen_addr;
 	u32 splash_screen_size;
+#endif
 	char mdp_iommu_split_domain;
 };
 
