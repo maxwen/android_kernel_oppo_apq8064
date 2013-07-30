@@ -183,8 +183,12 @@ __do_user_fault(struct task_struct *tsk, unsigned long addr,
 	    ((user_debug & UDBG_BUS)  && (sig == SIGBUS))) {
 		printk(KERN_DEBUG "%s: unhandled page fault (%d) at 0x%08lx, code 0x%03x\n",
 		       tsk->comm, sig, addr, fsr);
-		show_pte(tsk->mm, addr);
-		show_regs(regs);
+/* OPPO 2013-06-08 huanggd Modify for reduce printk rate*/
+		if (printk_ratelimit()) {
+			show_pte(tsk->mm, addr);
+			show_regs(regs);
+		}
+/* OPPO 2013-06-08 huanggd Modify end*/		
 	}
 #endif
 
