@@ -57,8 +57,8 @@
 #include "synaptics_firmware_truly.h"
 #include "synaptics_firmware_wintek.h"
 #include "synaptics_firmware_tpk.h"
-#define TP_UPDATE_RLE_FILE	"tpupdate.rle"
-extern int display_rle_file(char *filename);
+//#define TP_UPDATE_RLE_FILE	"tpupdate.rle"
+//extern int display_rle_file(char *filename);
 
 #include "synaptics_test_rawdata.h"
 
@@ -1798,8 +1798,8 @@ detect_device:
 	if (ret < 0)
 		goto err_detect_failed;
 
-	print_ts(TS_INFO, "[SYNAP]version: %02x%02x\n",
-			ts->version[2], ts->version[3]);
+	print_ts(TS_ERROR, "[SYNAP] vendor: %d version: %02x%02x\n",
+			ts->vendor_id, ts->version[2], ts->version[3]);
 
 	force_update = 0;
 
@@ -1829,7 +1829,7 @@ firmware_update:
 			|| (ts->version[2] != ((fw_update_version>>8)&0xFF)
 				|| ts->version[3] < (fw_update_version&0xFF))))
 		{
-			display_rle_file(TP_UPDATE_RLE_FILE);
+			//display_rle_file(TP_UPDATE_RLE_FILE);
 			CompleteReflash(client, fw_update_data);
 			goto detect_device;
 		}
