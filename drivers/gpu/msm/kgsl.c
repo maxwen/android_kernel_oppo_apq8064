@@ -2383,9 +2383,8 @@ EXPORT_SYMBOL(kgsl_device_platform_probe);
 int kgsl_postmortem_dump(struct kgsl_device *device, int manual)
 {
 	bool saved_nap;
-/* OPPO 2013-06-17 huanggd Delete for too many kgsl log*/		
-	//struct kgsl_pwrctrl *pwr = &device->pwrctrl;
-/* OPPO 2013-06-17 huanggd Delete end*/	
+	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
+
 	BUG_ON(device == NULL);
 
 	kgsl_cffdump_hang(device->id);
