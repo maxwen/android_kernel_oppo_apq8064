@@ -44,15 +44,6 @@
 #endif
 #include "mipi_dsi.h"
 
-/* OPPO 2013-02-05 zhengzk Add begin for fix mdp underrun */
-#define FORBID_POWER_COLLAPSE
-
-#ifdef FORBID_POWER_COLLAPSE
-#include <linux/pm_qos.h>
-#define MDP_LATENCY	1300
-struct pm_qos_request mdp_pm_qos_req_dma;
-#endif
-/* OPPO 2013-02-05 zhengzk Add end */
 uint32 mdp4_extn_disp;
 
 static struct clk *mdp_clk;
@@ -73,9 +64,8 @@ static struct res_mmu_clk mdp_sec_mmu_clks[] = {
 int mdp_rev;
 int mdp_iommu_split_domain;
 u32 mdp_max_clk = 266667000;
-/*OPPO Gousj 2013-04-1 add begin*/
-u64 mdp_max_bw = 3080000000UL; 
-/*OPPO Gousj 2013-04-1 add end*/
+u64 mdp_max_bw = 2000000000;
+
 static struct platform_device *mdp_init_pdev;
 static struct regulator *footswitch, *dsi_pll_vdda, *dsi_pll_vddio;
 static unsigned int mdp_footswitch_on;
@@ -178,18 +168,6 @@ static uint32 mdp_prim_panel_type = NO_PANEL;
 struct list_head mdp_hist_lut_list;
 DEFINE_MUTEX(mdp_hist_lut_list_mutex);
 
-/* OPPO 2013-04-11 zhengzk Add begin for ftm boot logo */
-extern int get_boot_mode(void);
-enum{
-	MSM_BOOT_MODE__NORMAL,
-	MSM_BOOT_MODE__FASTBOOT,
-	MSM_BOOT_MODE__RECOVERY,
-	MSM_BOOT_MODE__FACTORY,
-	MSM_BOOT_MODE__RF,
-	MSM_BOOT_MODE__WLAN,
-	MSM_BOOT_MODE__CHARGE,
-};
-/* OPPO 2013-04-11 zhengzk Add end */
 uint32_t mdp_block2base(uint32_t block)
 {
 	uint32_t base = 0x0;
@@ -2387,9 +2365,7 @@ static int mdp_off(struct platform_device *pdev)
 
 	mdp_clk_ctrl(0);
 #ifdef CONFIG_MSM_BUS_SCALING
-/*OPPO Gousj 2013-04-18 modify begin for blue screen*/
-	mdp_bus_scale_update_request(0, 0, 0, 0);
-/*OPPO Gousj 2013-04-18 modify end */
+	mdp_bus_scale_update_request(0, 0);
 #endif
 	pr_debug("%s:-\n", __func__);
 	return ret;
@@ -2513,9 +2489,9 @@ void mdp_hw_version(void)
 }
 
 #ifdef CONFIG_MSM_BUS_SCALING
-/*OPPO Gousj 2013-04-18 modify begin for blue screen */
-#ifndef MDP_BUS_VECTOR_ENTRY_P0
-#define MDP_BUS_VECTOR_ENTRY_P0(ab_val, ib_val)		\
+
+#ifndef MDP_BUS_VECTOR_ENTRY
+#define MDP_BUS_VECTOR_ENTRY(ab_val, ib_val)		\
 	{						\
 		.src = MSM_BUS_MASTER_MDP_PORT0,	\
 		.dst = MSM_BUS_SLAVE_EBI_CH0,		\
@@ -2523,50 +2499,17 @@ void mdp_hw_version(void)
 		.ib  = (ib_val),			\
 	}
 #endif
-#ifndef MDP_BUS_VECTOR_ENTRY_P1
-#define MDP_BUS_VECTOR_ENTRY_P1(ab_val, ib_val)		\
-	{						\
-		.src = MSM_BUS_MASTER_MDP_PORT1,	\
-		.dst = MSM_BUS_SLAVE_EBI_CH0,		\
-		.ab  = (ab_val),			\
-		.ib  = (ib_val),			\
-	}
-#endif
-
 /*
  *    Entry 0 hold 0 request
  *    Entry 1 and 2 do ping pong request
  */
-static struct msm_bus_vectors mdp_bus_init_vectors[] = {
-	MDP_BUS_VECTOR_ENTRY_P0(0, 0),
-	MDP_BUS_VECTOR_ENTRY_P1(0, 0),
+static struct msm_bus_vectors mdp_bus_vectors[] = {
+	MDP_BUS_VECTOR_ENTRY(0, 0),
+	MDP_BUS_VECTOR_ENTRY( 128000000,  160000000),
+	MDP_BUS_VECTOR_ENTRY( 128000000,  160000000),
 };
 
-static struct msm_bus_vectors mdp_bus_ping_vectors[] = {
-	MDP_BUS_VECTOR_ENTRY_P0(128000000, 160000000),
-	MDP_BUS_VECTOR_ENTRY_P1(128000000, 160000000),
-};
-
-static struct msm_bus_vectors mdp_bus_pong_vectors[] = {
-	MDP_BUS_VECTOR_ENTRY_P0(128000000, 160000000),
-	MDP_BUS_VECTOR_ENTRY_P1(128000000, 160000000),
-};
-
-static struct msm_bus_paths mdp_bus_usecases[] = {
-	{
-		ARRAY_SIZE(mdp_bus_init_vectors),
-		mdp_bus_init_vectors,
-	},
-	{
-		ARRAY_SIZE(mdp_bus_ping_vectors),
-		mdp_bus_ping_vectors,
-	},
-	{
-		ARRAY_SIZE(mdp_bus_pong_vectors),
-		mdp_bus_pong_vectors,
-	},
-};
-/*OPPO Gousj 2013-04-18 modify end*/
+static struct msm_bus_paths mdp_bus_usecases[ARRAY_SIZE(mdp_bus_vectors)];
 static struct msm_bus_scale_pdata mdp_bus_scale_table = {
 	.usecase = mdp_bus_usecases,
 	.num_usecases = ARRAY_SIZE(mdp_bus_usecases),
@@ -2576,12 +2519,12 @@ static uint32_t mdp_bus_scale_handle;
 static int mdp_bus_scale_register(void)
 {
 	struct msm_bus_scale_pdata *bus_pdata = &mdp_bus_scale_table;
-/*	int i;
+	int i;
 	for (i = 0; i < bus_pdata->num_usecases; i++) {
 		mdp_bus_usecases[i].num_paths = 1;
 		mdp_bus_usecases[i].vectors = &mdp_bus_vectors[i];
 	}
-*/
+
 	if (!mdp_bus_scale_handle) {
 		mdp_bus_scale_handle = msm_bus_scale_register_client(bus_pdata);
 		if (!mdp_bus_scale_handle) {
@@ -2594,58 +2537,42 @@ static int mdp_bus_scale_register(void)
 }
 
 static int bus_index = 1;
-int mdp_bus_scale_update_request(u64 ab_p0, u64 ib_p0, u64 ab_p1, u64 ib_p1)
+int mdp_bus_scale_update_request(u64 ab, u64 ib)
 {
 	if (mdp_bus_scale_handle < 1) {
 		pr_err("%s invalid bus handle\n", __func__);
 		return -EINVAL;
 	}
 
-	if ((!ab_p0) && (!ab_p1))
+	if (!ab)
 		return msm_bus_scale_client_update_request
 			(mdp_bus_scale_handle, 0);
 
 	/* ping pong bus_index between table entry 1 and 2 */
 	bus_index++;
 	bus_index = (bus_index > 2) ? 1 : bus_index;
-/* OPPO 2013-04-01 gousj Add begin for fix blue screen */
-	mdp_bus_usecases[bus_index].vectors[0].ab = min(ab_p0, mdp_max_bw);
-	ib_p0 = max(ib_p0, ab_p0);
-	mdp_bus_usecases[bus_index].vectors[0].ib = min(ib_p0, mdp_max_bw);
-	mdp_bus_usecases[bus_index].vectors[1].ab = min(ab_p1, mdp_max_bw);
-	ib_p1 = max(ib_p1, ab_p1);
-	mdp_bus_usecases[bus_index].vectors[1].ib = min(ib_p1, mdp_max_bw);
-/* OPPO 2013-04-01 gousj Add end*/
+
+	mdp_bus_usecases[bus_index].vectors->ab = min(ab, mdp_max_bw);
+	ib = max(ib, ab);
+	mdp_bus_usecases[bus_index].vectors->ib = min(ib, mdp_max_bw);
 
 	pr_debug("%s: handle=%d index=%d ab=%llu ib=%llu\n", __func__,
 		 (u32)mdp_bus_scale_handle, bus_index,
-/*OPPO Gousj 2013-04-18 modify begin for blue screen */
-		 mdp_bus_usecases[bus_index].vectors[0].ab,
-		 mdp_bus_usecases[bus_index].vectors[0].ib);
-	pr_debug("%s: p1 handle=%d index=%d ab=%llu ib=%llu\n", __func__,
-		(u32)mdp_bus_scale_handle, bus_index,
-		mdp_bus_usecases[bus_index].vectors[1].ab,
-		mdp_bus_usecases[bus_index].vectors[1].ib);
+		 mdp_bus_usecases[bus_index].vectors->ab,
+		 mdp_bus_usecases[bus_index].vectors->ib);
 
 	return msm_bus_scale_client_update_request
 		(mdp_bus_scale_handle, bus_index);
 }
 static int mdp_bus_scale_restore_request(void)
 {
-	pr_debug("%s: index=%d ab_p0=%llu ib_p0=%llu\n", __func__, bus_index,
-		mdp_bus_usecases[bus_index].vectors[0].ab,
-		mdp_bus_usecases[bus_index].vectors[0].ib);
-	pr_debug("%s: index=%d ab_p1=%llu ib_p1=%llu\n", __func__, bus_index,
-		mdp_bus_usecases[bus_index].vectors[1].ab,
-		mdp_bus_usecases[bus_index].vectors[1].ib);
-
+	pr_debug("%s: index=%d ab=%llu ib=%llu\n", __func__, bus_index,
+		mdp_bus_usecases[bus_index].vectors->ab,
+		mdp_bus_usecases[bus_index].vectors->ib);
 	return mdp_bus_scale_update_request
-		(mdp_bus_usecases[bus_index].vectors[0].ab,
-		 mdp_bus_usecases[bus_index].vectors[0].ib,
-		 mdp_bus_usecases[bus_index].vectors[1].ab,
-		 mdp_bus_usecases[bus_index].vectors[1].ib);
+		(mdp_bus_usecases[bus_index].vectors->ab,
+		 mdp_bus_usecases[bus_index].vectors->ib);
 }
-/*OPPO Gousj 2013-04-18 modify end*/
 #else
 static int mdp_bus_scale_restore_request(void)
 {
@@ -2833,22 +2760,8 @@ static int mdp_probe(struct platform_device *pdev)
 		}
 
 		mdp_rev = mdp_pdata->mdp_rev;
-/* OPPO 2013-02-05 zhengzk Add begin for reason */
-#ifdef FORBID_POWER_COLLAPSE
-		pm_qos_add_request(&mdp_pm_qos_req_dma,
-				PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
-		pm_qos_update_request(&mdp_pm_qos_req_dma,
-				MDP_LATENCY + 1);
-		printk ("%s: pm_qos_update_request", __func__);
-#endif
-/* OPPO 2013-02-05 zhengzk Add end */
-		mdp_iommu_split_domain = mdp_pdata->mdp_iommu_split_domain;
 
-/* OPPO 2013-04-11 zhengzk Add begin for ftm boot logo */
-		if((get_boot_mode() != MSM_BOOT_MODE__NORMAL) 
-			&& (get_boot_mode() != MSM_BOOT_MODE__RECOVERY))//huanggd for do not update tp firmware when in recovery mode
-			mdp_pdata->cont_splash_enabled = 0;
-/* OPPO 2013-04-11 zhengzk Add end */
+		mdp_iommu_split_domain = mdp_pdata->mdp_iommu_split_domain;
 
 		rc = mdp_irq_clk_setup(pdev, mdp_pdata->cont_splash_enabled);
 
@@ -3268,12 +3181,7 @@ static int mdp_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	/* req bus bandwidth immediately */
-/*OPPO Gousj 2013-04-18 modify begin for blue screen */
-	mdp_bus_scale_update_request(mdp_max_bw,
-				     mdp_max_bw,
-				     mdp_max_bw,
-				     mdp_max_bw);
-/*OPPO Gousj 2013-04-18 modify end */
+	mdp_bus_scale_update_request(mdp_max_bw, mdp_max_bw);
 #endif
 
 	/* set driver data */
@@ -3454,13 +3362,6 @@ static int mdp_remove(struct platform_device *pdev)
 		mdp_bus_scale_handle = 0;
 	}
 #endif
-/* OPPO 2013-02-05 zhengzk Add begin for reason */
-#ifdef FORBID_POWER_COLLAPSE
-	pm_qos_update_request(&mdp_pm_qos_req_dma,
-			PM_QOS_DEFAULT_VALUE);
-	printk ("%s: pm_qos_update_request", __func__);
-#endif
-/* OPPO 2013-02-05 zhengzk Add end */
 	return 0;
 }
 

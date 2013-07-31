@@ -386,13 +386,13 @@ int mdp4_wfd_pipe_commit(struct msm_fb_data_type *mfd,
 
 	rc = mdp4_wfd_dequeue_update(mfd, &node);
 	if (rc != 0) {
-	//	pr_err("%s: mdp4_wfd_dequeue_update failed !! mfd=%x\n",
-	//		__func__, (int)mfd);
+		pr_err("%s: mdp4_wfd_dequeue_update failed !! mfd=%x\n",
+			__func__, (int)mfd);
 		pipe = vp->plist;
 		for (i = 0; i < OVERLAY_PIPE_MAX; i++, pipe++) {
 			pipe->pipe_used = 0;
-		//	pr_info("%s: dequeue update failed, unsetting pipes\n",
-		//		__func__);
+			pr_info("%s: dequeue update failed, unsetting pipes\n",
+				__func__);
 		}
 		return cnt;
 	}

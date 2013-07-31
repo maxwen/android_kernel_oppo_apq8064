@@ -29,12 +29,8 @@
 
 #endif
 
-/* OPPO 2013-04-16 huanggd Modify for reduce printk rate*/
-#define VCD_MSG_ERROR(xx_fmt...)	do{ if (printk_ratelimit()) \
-										   printk(KERN_ERR "\n err: " xx_fmt);} while(0)
-#define VCD_MSG_FATAL(xx_fmt...)	do{ if (printk_ratelimit()) \
-										   printk(KERN_ERR "\n<FATAL> " xx_fmt);} while(0)
-/* OPPO 2013-04-16 huanggd Modify end*/
+#define VCD_MSG_ERROR(xx_fmt...)	printk(KERN_ERR "\n err: " xx_fmt)
+#define VCD_MSG_FATAL(xx_fmt...)	printk(KERN_ERR "\n<FATAL> " xx_fmt)
 
 #define VCD_FAILED_RETURN(rc, xx_fmt...)		\
 	do {						\

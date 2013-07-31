@@ -36,19 +36,10 @@
 #include "vdec_internal.h"
 
 
-/* OPPO 2013-07-01 huanggd Modify for reduce printk rate*/
-#if 0
+
 #define DBG(x...) pr_debug(x)
 #define INFO(x...) pr_info(x)
 #define ERR(x...) pr_err(x)
-
-#else
-
-#define DBG(x...) do{ if (printk_ratelimit()) pr_debug(x);} while(0)
-#define INFO(x...) do{ if (printk_ratelimit()) pr_info(x);} while(0)
-#define ERR(x...) do{ if (printk_ratelimit()) pr_info(x);} while(0)
-#endif
-/* OPPO 2013-07-01 huanggd Modify end*/
 
 #define VID_DEC_NAME "msm_vidc_dec"
 

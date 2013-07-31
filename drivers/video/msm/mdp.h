@@ -833,14 +833,10 @@ int mdp_clk_round_rate(u32 rate);
 unsigned long mdp_get_core_clk(void);
 
 #ifdef CONFIG_MSM_BUS_SCALING
-/*OPPO 3013-04-18 Gousj modify begin for blue screen*/
-int mdp_bus_scale_update_request(u64 ab_p0, u64 ib_p0, u64 ab_p1, u64 ib_p1);
+int mdp_bus_scale_update_request(u64 ab, u64 ib);
 #else
-static inline int mdp_bus_scale_update_request(u64 ab_p0,
-					       u64 ib_p0,
-					       u64 ab_p1,
-					       u64 ib_p1)
-/*OPPO 3013-04-18  Gousj modify end*/
+static inline int mdp_bus_scale_update_request(u64 ab,
+					       u64 ib)
 {
 	return 0;
 }
