@@ -61,7 +61,7 @@ static struct resource msm_fb_resources[] = {
 #define LVDS_FRC_PANEL_NAME "lvds_frc_fhd"
 #define MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME "mipi_video_toshiba_wsvga"
 /* OPPO 2012-07-21 zhengzk Add begin for add orise module */
-#define MIPI_VIDEO_ORISE_720P_PANEL_NAME	"mipi_video_orise_720p"
+#define MIPI_VIDEO_ORISE_OPPO_PANEL_NAME	"mipi_video_orise_oppo"
 /* OPPO 2012-07-21 zhengzk Add end */
 #define MIPI_VIDEO_CHIMEI_WXGA_PANEL_NAME "mipi_video_chimei_wxga"
 #define HDMI_PANEL_NAME "hdmi_msm"
@@ -129,8 +129,8 @@ static int msm_fb_detect_panel(const char *name)
 		}
 	}
 #else
-	if (!strncmp(name, MIPI_VIDEO_ORISE_720P_PANEL_NAME,
-		strnlen(MIPI_VIDEO_ORISE_720P_PANEL_NAME,
+	if (!strncmp(name, MIPI_VIDEO_ORISE_OPPO_PANEL_NAME,
+		strnlen(MIPI_VIDEO_ORISE_OPPO_PANEL_NAME,
 			PANEL_NAME_MAX_LEN)))
 		return 0;
 #endif
