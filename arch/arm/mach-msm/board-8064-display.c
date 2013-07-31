@@ -29,26 +29,26 @@
 #include "board-8064.h"
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-/* prim = 1366 x 768 x 3(bpp) x 3(pages) */
+/* prim = 1920 x 1088 x 3(bpp) x 3(pages) */
 #define MSM_FB_PRIM_BUF_SIZE roundup(1920 * 1088 * 4 * 3, 0x10000)
 #else
-/* prim = 1366 x 768 x 3(bpp) x 2(pages) */
+/* prim = 1920 x 1088 x 3(bpp) x 2(pages) */
 #define MSM_FB_PRIM_BUF_SIZE roundup(1920 * 1088 * 4 * 2, 0x10000)
 #endif
 
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1376 * 768 * 3 * 2), 4096)
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1920 * 1088 * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
-#endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
+#endif /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
 
 #ifdef CONFIG_FB_MSM_OVERLAY1_WRITEBACK
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE roundup((1920 * 1088 * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
-#endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
+#endif /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
 
 
 static struct resource msm_fb_resources[] = {
@@ -67,10 +67,6 @@ static struct resource msm_fb_resources[] = {
 #define HDMI_PANEL_NAME "hdmi_msm"
 #define MHL_PANEL_NAME "hdmi_msm,mhl_8334"
 #define TVOUT_PANEL_NAME "tvout_msm"
-
-/* OPPO 2012-07-21 zhengzk Add begin for MIPI speedup */
-#define MDP_SPEEDUP_FOR_MIPI
-/* OPPO 2012-07-21 zhengzk Add end */
 
 #define LVDS_PIXEL_MAP_PATTERN_1	1
 #define LVDS_PIXEL_MAP_PATTERN_2	2
@@ -192,15 +188,8 @@ static struct msm_bus_vectors mdp_ui_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		/* OPPO 2012-07-23 zhengzk Modify begin for improve MDP speed */
-#ifdef MDP_SPEEDUP_FOR_MIPI
-		.ab = 2000000000,
-		.ib = 2000000000,
-#else
-		.ab = 216000000 * 2,
-		.ib = 270000000 * 2,
-#endif
-		/* OPPO 2012-07-23 zhengzk Modify end */
+		.ab = 1920 * 1080 * 4 * 60 * 2,
+		.ib = 1920 * 1080 * 4 * 60 * 2 * 1.25,
 	},
 };
 
@@ -209,15 +198,8 @@ static struct msm_bus_vectors mdp_vga_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		/* OPPO 2012-07-23 zhengzk Modify begin for improve MDP speed */
-#ifdef MDP_SPEEDUP_FOR_MIPI
-		.ab = 2000000000,
-		.ib = 2000000000,
-#else
-		.ab = 216000000 * 2,
-		.ib = 270000000 * 2,
-#endif
-		/* OPPO 2012-07-23 zhengzk Modify end */
+		.ab = ((1920 * 1080 * 4 * 60) + (480 * 640 * 60 * 1.5)) * 2,
+		.ib = ((1920 * 1080 * 4 * 60) + (480 * 640 * 60 * 1.5)) * 2 * 1.25,
 	},
 };
 
@@ -226,15 +208,8 @@ static struct msm_bus_vectors mdp_720p_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		/* OPPO 2012-07-23 zhengzk Modify begin for improve MDP speed */
-#ifdef MDP_SPEEDUP_FOR_MIPI
-		.ab = 2000000000,
-		.ib = 2000000000,
-#else
-		.ab = 230400000 * 2,
-		.ib = 288000000 * 2,
-#endif
-		/* OPPO 2012-07-23 zhengzk Modify end */
+		.ab = ((1920 * 1080 * 4 * 60) + (1280 * 720 * 60 * 1.5)) * 2,
+		.ib = ((1920 * 1080 * 4 * 60) + (1280 * 720 * 60 * 1.5)) * 2 * 1.25,
 	},
 };
 
@@ -243,15 +218,8 @@ static struct msm_bus_vectors mdp_1080p_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		/* OPPO 2012-07-23 zhengzk Modify begin for improve MDP speed */
-#ifdef MDP_SPEEDUP_FOR_MIPI
-		.ab = 2000000000,
-		.ib = 2000000000,
-#else
-		.ab = 334080000 * 2,
-		.ib = 417600000 * 2,
-#endif
-		/* OPPO 2012-07-23 zhengzk Modify end */
+		.ab = ((1920 * 1080 * 4 * 60) + (1920 * 1080 * 60 * 1.5)) * 2,
+		.ib = ((1920 * 1080 * 4 * 60) + (1920 * 1080 * 60 * 1.5)) * 2 * 1.25,
 	},
 };
 
@@ -291,9 +259,9 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
 	.mdp_max_clk = 266667000,
-	.mdp_max_bw = 2000000000,
-	.mdp_bw_ab_factor = 115,
-	.mdp_bw_ib_factor = 125,
+	.mdp_max_bw = 3600000000UL,
+	.mdp_bw_ab_factor = 220,
+	.mdp_bw_ib_factor = 230,
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 	.mdp_rev = MDP_REV_44,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -302,22 +270,11 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.mem_hid = MEMTYPE_EBI1,
 #endif
 	.mdp_iommu_split_domain = 1,
-/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
-#ifdef CONFIG_VENDOR_EDIT	
+#ifdef CONFIG_VENDOR_EDIT
+	/* for early backlight on for APQ8064 */
 	.cont_splash_enabled = 0x01,
-	.splash_screen_addr = 0x00,
-	.splash_screen_size = 0x00,
 #endif
-/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
 };
-/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
-#ifdef CONFIG_VENDOR_EDIT	
-static char mipi_dsi_splash_is_enabled(void)
-{   
-	return mdp_pdata.cont_splash_enabled;
-}
-#endif
-/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
 
 void __init apq8064_mdp_writeback(struct memtype_reserve* reserve_table)
 {
@@ -645,14 +602,17 @@ int mipi_dsi_panel_power(int on)
 	return 0;
 }
 
-/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
-#ifdef CONFIG_VENDOR_EDIT	
-static char mipi_dsi_splash_is_enabled(void);
+#ifdef CONFIG_VENDOR_EDIT
+/* for early backlight on for APQ8064 */
+static char mipi_dsi_splash_is_enabled(void)
+{
+	return mdp_pdata.cont_splash_enabled;
+}
 #endif
+
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
 	.dsi_power_save = mipi_dsi_panel_power,
-/* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
-#ifdef CONFIG_VENDOR_EDIT			
+#ifdef CONFIG_VENDOR_EDIT
 	.splash_is_enabled = mipi_dsi_splash_is_enabled,
 #endif
 };
