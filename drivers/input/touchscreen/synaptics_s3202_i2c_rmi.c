@@ -50,8 +50,8 @@
 #include <linux/wakelock.h>
 
 /******************* tp function switch **************************/
-#define TP_UPDATE_FIRMWARE  1
-#define SUPPORT_DOUBLE_TAP  1
+#define TP_UPDATE_FIRMWARE  0
+#define SUPPORT_DOUBLE_TAP  0
 /*****************************************************************/
 
 #include "synaptics_firmware_truly.h"
