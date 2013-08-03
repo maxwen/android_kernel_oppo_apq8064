@@ -973,5 +973,9 @@ config TOUCHSCREEN_SYNAPTICS_S3202_I2C_RMI
 	help
 	  This enables support for Synaptics s3202 RMI over I2C based touchscreens.
 
-endif
+config TOUCHSCREEN_SYNAPTICS_S2W
+    bool "S2W (Sweep2Wake) for Synaptics s3202 i2c touchscreen"
+    depends on TOUCHSCREEN_SYNAPTICS_S3202_I2C_RMI
+    default n
 
+endif
