@@ -301,7 +301,7 @@ static struct dsi_cmd_desc cmd_mipi_off_sequence[] = {
 static int operate_display_switch(void)
 {
 	int ret = 0;
-	printk("%s:state=%d.\n", __func__, te_state);
+	//printk("%s:state=%d.\n", __func__, te_state);
 	
 	spin_lock_irqsave(&te_state_lock, flags);
 	if(te_state)
@@ -368,7 +368,7 @@ static int mipi_orise_lcd_on(struct platform_device *pdev)
 		else{
 			mipi_dsi_cmds_tx(&orise_tx_buf, cmd_mipi_initial_sequence,
 				ARRAY_SIZE(cmd_mipi_initial_sequence));
-			printk("huyu-------%s: lcd ESD reset initial!\n",__func__);
+			//printk("huyu-------%s: lcd ESD reset initial!\n",__func__);
 			mdelay(130);
 			//printk("huyu-------%s: lcd cmd_brightness_setting!\n",__func__);
 			mipi_dsi_cmds_tx(&orise_tx_buf, cmd_brightness_setting,
@@ -550,13 +550,13 @@ static void techeck_work_func( struct work_struct *work )
 	if(flag_lcd_off) 
 	{
 	
-		printk("huyu------%s: lcd is off ing ! don't do this ! te_count = %d \n",__func__,te_count);
+		//printk("huyu------%s: lcd is off ing ! don't do this ! te_count = %d \n",__func__,te_count);
 		return ;
 	}
 	if(te_count < 80)
 	{
-		printk("huyu------%s: lcd resetting ! te_count = %d \n",__func__,te_count);
-		printk("irq_state=%d\n", irq_state);
+		//printk("huyu------%s: lcd resetting ! te_count = %d \n",__func__,te_count);
+		//printk("irq_state=%d\n", irq_state);
 		flag_lcd_resume = true;
 
 		spin_lock_irqsave(&te_count_lock, flags);
