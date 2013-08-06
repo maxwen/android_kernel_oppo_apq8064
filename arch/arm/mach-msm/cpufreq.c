@@ -155,9 +155,11 @@ static int msm_cpufreq_target(struct cpufreq_policy *policy,
 		goto done;
 	}
 
-	if (table[index].frequency == policy->cur)
+	if (table[index].frequency == policy->cur){
+		ret = 0;
 		goto done;
-
+	}
+	
 	pr_debug("CPU[%d] target %d relation %d (%d-%d) selected %d\n",
 		policy->cpu, target_freq, relation,
 		policy->min, policy->max, table[index].frequency);
