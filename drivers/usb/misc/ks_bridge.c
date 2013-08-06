@@ -399,11 +399,19 @@ static const struct file_operations ksb_fops = {
 };
 
 static struct miscdevice ksb_fboot_dev[] = {
+#ifdef CONFIG_USB_QCOM_KS_BRIDGE_COMPAT
+	{
+		.minor = MISC_DYNAMIC_MINOR,
+		.name = "ks_bridge",
+		.fops = &ksb_fops,
+	},
+#else
 	{
 		.minor = MISC_DYNAMIC_MINOR,
 		.name = "ks_hsic_bridge",
 		.fops = &ksb_fops,
 	},
+#endif
 	{
 		.minor = MISC_DYNAMIC_MINOR,
 		.name = "ks_usb_bridge",
@@ -419,11 +427,19 @@ static const struct file_operations efs_fops = {
 	.release = ksb_fs_release,
 };
 
+#ifdef CONFIG_USB_QCOM_KS_BRIDGE_COMPAT
+static struct miscdevice ksb_efs_hsic_dev = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "efs_bridge",
+	.fops = &efs_fops,
+};
+#else
 static struct miscdevice ksb_efs_hsic_dev = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = "efs_hsic_bridge",
 	.fops = &efs_fops,
 };
+#endif
 
 static struct miscdevice ksb_efs_usb_dev = {
 	.minor = MISC_DYNAMIC_MINOR,
