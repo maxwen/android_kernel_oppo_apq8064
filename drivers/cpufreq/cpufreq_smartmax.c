@@ -227,15 +227,9 @@ struct smartmax_info_s {
 };
 static DEFINE_PER_CPU(struct smartmax_info_s, smartmax_info);
 
-#define SMARTMAX_DEBUG 0
-
-#if SMARTMAX_DEBUG
 #define dprintk(flag,msg...) do { \
-	if (debug_mask & flag) printk(KERN_DEBUG "[smartmax]" ":" msg); \
+	if (debug_mask & flag) pr_info("[smartmax]" ":" msg); \
 	} while (0)
-#else
-#define dprintk(flag,msg...)
-#endif
 
 enum {
 	SMARTMAX_DEBUG_JUMPS = 1,
@@ -249,11 +243,8 @@ enum {
 /*
  * Combination of the above debug flags.
  */
-#if SMARTMAX_DEBUG
-static unsigned long debug_mask = SMARTMAX_DEBUG_LOAD|SMARTMAX_DEBUG_JUMPS|SMARTMAX_DEBUG_ALG|SMARTMAX_DEBUG_BOOST|SMARTMAX_DEBUG_INPUT|SMARTMAX_DEBUG_SUSPEND;
-#else
+//static unsigned long debug_mask = SMARTMAX_DEBUG_LOAD|SMARTMAX_DEBUG_JUMPS|SMARTMAX_DEBUG_ALG|SMARTMAX_DEBUG_BOOST|SMARTMAX_DEBUG_INPUT|SMARTMAX_DEBUG_SUSPEND;
 static unsigned long debug_mask;
-#endif
 
 #define SMARTMAX_STAT 0
 #if SMARTMAX_STAT
@@ -418,20 +409,14 @@ inline static void target_freq(struct cpufreq_policy *policy,
 		int prefered_relation) {
 	int index, target;
 	struct cpufreq_frequency_table *table = this_smartmax->freq_table;
-#if SMARTMAX_DEBUG
 	unsigned int cpu = this_smartmax->cpu;
-#endif
 
 	dprintk(SMARTMAX_DEBUG_ALG, "%d: %s\n", old_freq, __func__);
 
-	if (new_freq == old_freq)
-		return;
+	// apply policy limits - just to be sure
 	new_freq = validate_freq(policy, new_freq);
-	if (new_freq == old_freq)
-		return;
 
-	if (table
-			&& !cpufreq_frequency_table_target(policy, table, new_freq,
+	if (!cpufreq_frequency_table_target(policy, table, new_freq,
 					prefered_relation, &index)) {
 		target = table[index].frequency;
 		if (target == old_freq) {
@@ -450,16 +435,13 @@ inline static void target_freq(struct cpufreq_policy *policy,
 				target = table[index].frequency;
 		}
 
-		if (target == old_freq) {
-			// We should not get here:
-			// If we got here we tried to change to a validated new_freq which is different
-			// from old_freq, so there is no reason for us to remain at same frequency.
-			dprintk(SMARTMAX_DEBUG_ALG, "%d: frequency change failed to %d (%d)\n",
-					old_freq, new_freq, target);
+		// no change
+		if (target == old_freq)
 			return;
-		}
-	} else
-		target = new_freq;
+	} else {
+		dprintk(SMARTMAX_DEBUG_ALG, "frequency change failed\n");
+		return;
+	}
 
 	dprintk(SMARTMAX_DEBUG_JUMPS, "%d: jumping to %d (%d) cpu %d\n", old_freq, new_freq, target, cpu);
 
@@ -559,12 +541,9 @@ static void cpufreq_smartmax_timer(struct smartmax_info_s *this_smartmax) {
 	/* Extrapolated load of this CPU */
 	unsigned int load_at_max_freq = 0;
 	unsigned int j = 0;
-#if SMARTMAX_DEBUG
 	unsigned int cpu = this_smartmax->cpu;
-#endif
 
 #if SMARTMAX_STAT 
-	unsigned int cpu = this_smartmax->cpu;
 	u64 diff = 0;
 
 	if (timer_stat[cpu])
@@ -1167,9 +1146,7 @@ static int cpufreq_smartmax_boost_task(void *data) {
 
 			if (policy->cur < cur_boost_freq) {
 				start_boost = true;
-#if SMARTMAX_DEBUG
 				dprintk(SMARTMAX_DEBUG_BOOST, "input boost cpu %d to %d\n", cpu, cur_boost_freq);
-#endif
 				target_freq(policy, this_smartmax, cur_boost_freq, this_smartmax->old_freq, CPUFREQ_RELATION_H);
 				this_smartmax->prev_cpu_idle = get_cpu_idle_time(cpu, &this_smartmax->prev_cpu_wall);
 			}
@@ -1193,9 +1170,7 @@ static int cpufreq_smartmax_boost_task(void *data) {
 #endif
 	}
 
-#if SMARTMAX_DEBUG
 	pr_info("[smartmax]:" "%s boost_thread stopped\n", __func__);
-#endif
 	return 0;
 }
 
@@ -1259,9 +1234,7 @@ static int dbs_input_connect(struct input_handler *handler,
 	if (input_dev_filter(dev->name))
 		return 0;
 
-#if SMARTMAX_DEBUG
 	pr_info("[smartmax]:" "%s input connect to %s\n", __func__, dev->name);
-#endif
 
 	handle = kzalloc(sizeof(struct input_handle), GFP_KERNEL);
 	if (!handle)
@@ -1282,6 +1255,7 @@ static int dbs_input_connect(struct input_handler *handler,
 	return 0;
 	err1: input_unregister_handle(handle);
 	err2: kfree(handle);
+	pr_err("[smartmax]:" "%s faild to connect input handler %d\n", __func__, error);
 	return error;
 }
 
@@ -1341,6 +1315,10 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 		smartmax_update_min_max(this_smartmax,new_policy);
 
 		this_smartmax->freq_table = cpufreq_frequency_get_table(cpu);
+		if (!this_smartmax->freq_table){
+			mutex_unlock(&dbs_mutex);
+			return -EINVAL;
+		}
 
 		update_idle_time(false);
 
@@ -1360,9 +1338,7 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 					return PTR_ERR(boost_task);
 				}
 
-#if SMARTMAX_DEBUG
 				pr_info("[smartmax]:" "%s input boost task created\n", __func__);
-#endif
 				sched_setscheduler_nocheck(boost_task, SCHED_FIFO, &param);
 				get_task_struct(boost_task);
 				boost_task_alive = true;
