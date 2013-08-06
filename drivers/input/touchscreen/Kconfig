@@ -978,4 +978,9 @@ config TOUCHSCREEN_SYNAPTICS_S2W
     depends on TOUCHSCREEN_SYNAPTICS_S3202_I2C_RMI
     default n
 
+config TOUCHSCREEN_SYNAPTICS_ENABLE_FW_FLASH
+    bool "Enable automatic fw flashing"
+    depends on TOUCHSCREEN_SYNAPTICS_S3202_I2C_RMI
+    default n
+    
 endif

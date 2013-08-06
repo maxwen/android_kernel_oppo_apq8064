@@ -52,7 +52,11 @@
 #include <linux/wakelock.h>
 
 /******************* tp function switch **************************/
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_ENABLE_FW_FLASH
+#define TP_UPDATE_FIRMWARE  1
+#else
 #define TP_UPDATE_FIRMWARE  0
+#endif
 #define SUPPORT_DOUBLE_TAP  0
 /*****************************************************************/
 
