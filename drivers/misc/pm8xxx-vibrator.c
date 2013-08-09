@@ -229,7 +229,7 @@ static ssize_t pm8xxx_vib_voltage_store(struct device *dev,
 }
 
 static struct device_attribute pm8xxx_vib_devie_attrs[] = {
-        __ATTR(amp, S_IWUSR | S_IRUGO, pm8xxx_vib_voltage_show, pm8xxx_vib_voltage_store),
+        __ATTR(amp, S_IWUGO | S_IRUGO, pm8xxx_vib_voltage_show, pm8xxx_vib_voltage_store),
 };
 
 #ifdef CONFIG_PM
