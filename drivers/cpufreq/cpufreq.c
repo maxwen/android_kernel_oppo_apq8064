@@ -491,6 +491,10 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 
 	// try to set governor to all online cpus
 	// else governor will be set when cpu comes online the next time
+
+	// block hotplugging until done
+	get_online_cpus();
+
 	for_each_online_cpu(cpu) {
 		if (cpu == policy->cpu)
 			sysfs_policy = true;
@@ -542,6 +546,9 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 
 		cpufreq_cpu_put(curr_policy);
 	}
+	
+	put_online_cpus();
+
 	return count;
 }
 #else
@@ -710,6 +717,9 @@ static ssize_t store_scaling_max_freq(struct cpufreq_policy *policy,
 
 	if (max_freq == 0)
 		return -EINVAL;
+
+	// block hotplugging until done
+	get_online_cpus();
 				
 	for_each_online_cpu(cpu) {
 		if (cpu == policy->cpu)
@@ -749,6 +759,9 @@ static ssize_t store_scaling_max_freq(struct cpufreq_policy *policy,
 
 		cpufreq_cpu_put(curr_policy);
 	}
+	
+	put_online_cpus();
+	
 	return count;
 }
 
@@ -769,6 +782,9 @@ static ssize_t store_scaling_min_freq(struct cpufreq_policy *policy,
 
 	if (min_freq == 0)
 		return -EINVAL;
+
+	// block hotplugging until done
+	get_online_cpus();
 				
 	for_each_online_cpu(cpu) {
 		if (cpu == policy->cpu)
@@ -808,6 +824,9 @@ static ssize_t store_scaling_min_freq(struct cpufreq_policy *policy,
 		
 		cpufreq_cpu_put(curr_policy);
 	}
+	
+	put_online_cpus();
+	
 	return count;
 }
 #endif
