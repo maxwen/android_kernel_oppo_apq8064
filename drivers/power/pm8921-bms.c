@@ -2673,7 +2673,7 @@ static int calculate_state_of_charge(struct pm8921_bms_chip *chip,
 	if(shutdown_soc_invalid)
 		calculated_soc = new_calculated_soc;
 	
-	pr_info("shutdown_soc = %d new_calculated_soc = %d,firsttime = %d\n",
+	pr_debug("shutdown_soc = %d new_calculated_soc = %d,firsttime = %d\n",
 						shutdown_soc, new_calculated_soc,firsttime);
 	
 	firsttime = 0;

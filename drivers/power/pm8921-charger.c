@@ -5818,7 +5818,8 @@ static void adjust_vdd_max_for_fastchg(struct pm8921_chg_chip *chip,
 	/* adjust vdd_max only in normal temperature zone */
 	if (Pm8921_battery_temp_region_get(chip) == CV_BATTERY_TEMP_REGION_LITTLE__COLD ||
 		Pm8921_battery_temp_region_get(chip) == CV_BATTERY_TEMP_REGION__WARM){
-		pr_info("Exiting is_bat_cool,is_batt_warm\n");
+		pr_debug("Exiting is_bat_cool = %d is_batt_warm = %d\n",
+				chip->is_bat_cool, chip->is_bat_warm);
 		return;
 	}
 #endif
