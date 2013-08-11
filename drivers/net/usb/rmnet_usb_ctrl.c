@@ -264,17 +264,6 @@ static void notification_available_cb(struct urb *urb)
 	case USB_CDC_NOTIFY_RESPONSE_AVAILABLE:
 		dev->resp_avail_cnt++;
 
-//#ifdef VENDOR_EDIT
-//WuJinping@OnlineRD.AirService.Phone  Add for fix qmi driver bug, setup data call fail
-		/* If MUX is not enabled, wakeup up the open process
-		 * upon first notify response available.
-		 */
-		if (!test_bit(RMNET_CTRL_DEV_READY, &dev->status)) {
-			set_bit(RMNET_CTRL_DEV_READY, &dev->status);
-			wake_up(&dev->open_wait_queue);
-		}
-//#endif /* VENDOR_EDIT */		
-
 		usb_mark_last_busy(udev);
 		queue_work(dev->wq, &dev->get_encap_work);
 
@@ -966,18 +955,8 @@ int rmnet_usb_ctrl_probe(struct usb_interface *intf,
 
 	*data = (unsigned long)dev;
 
-//#ifdef VENDOR_EDIT
-//WuJinping@OnlineRD.AirService.Phone  modify for fix qmi driver bug, setup data call fail
-/*
 	set_bit(RMNET_CTRL_DEV_READY, &dev->status);
 	wake_up(&dev->open_wait_queue);
-*/
-//#else /* VENDOR_EDIT */
-	if (test_bit(RMNET_CTRL_DEV_MUX_EN, &dev->status)) {	
-		set_bit(RMNET_CTRL_DEV_READY, &dev->status);
-		wake_up(&dev->open_wait_queue); 		
-	}
-//#endif /* VENDOR_EDIT */
 
 	return 0;
 }
