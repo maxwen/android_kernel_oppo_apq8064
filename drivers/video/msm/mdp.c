@@ -44,6 +44,15 @@
 #endif
 #include "mipi_dsi.h"
 
+/* OPPO 2013-02-05 zhengzk Add begin for fix mdp underrun */
+#define FORBID_POWER_COLLAPSE
+
+#ifdef FORBID_POWER_COLLAPSE
+#include <linux/pm_qos.h>
+#define MDP_LATENCY	1300
+struct pm_qos_request mdp_pm_qos_req_dma;
+#endif
+/* OPPO 2013-02-05 zhengzk Add end */
 uint32 mdp4_extn_disp;
 
 static struct clk *mdp_clk;
@@ -2808,7 +2817,15 @@ static int mdp_probe(struct platform_device *pdev)
 			mdp_bw_ib_factor = mdp_pdata->mdp_bw_ib_factor;
 
 		mdp_rev = mdp_pdata->mdp_rev;
-
+/* OPPO 2013-02-05 zhengzk Add begin for reason */
+#ifdef FORBID_POWER_COLLAPSE
+		pm_qos_add_request(&mdp_pm_qos_req_dma,
+				PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
+		pm_qos_update_request(&mdp_pm_qos_req_dma,
+				MDP_LATENCY + 1);
+		printk ("%s: pm_qos_update_request", __func__);
+#endif
+/* OPPO 2013-02-05 zhengzk Add end */
 		mdp_iommu_split_domain = mdp_pdata->mdp_iommu_split_domain;
 
 		rc = mdp_irq_clk_setup(pdev, mdp_pdata->cont_splash_enabled);
@@ -3413,6 +3430,13 @@ static int mdp_remove(struct platform_device *pdev)
 		mdp_bus_scale_handle = 0;
 	}
 #endif
+/* OPPO 2013-02-05 zhengzk Add begin for reason */
+#ifdef FORBID_POWER_COLLAPSE
+	pm_qos_update_request(&mdp_pm_qos_req_dma,
+			PM_QOS_DEFAULT_VALUE);
+	printk ("%s: pm_qos_update_request", __func__);
+#endif
+/* OPPO 2013-02-05 zhengzk Add end */
 	return 0;
 }
 
