@@ -972,7 +972,7 @@ cpuidle_enter_bail:
 
 int msm_pm_wait_cpu_shutdown(unsigned int cpu)
 {
-	int timeout = 10;
+	int timeout = 20;
 
 	if (!msm_pm_slp_sts)
 		return 0;
