@@ -106,9 +106,6 @@ static void early_suspend(struct work_struct *work)
 
 	suspend_sys_sync_queue();
 
-/* OPPO 2013-03-25 huanggd Add begin for debufinfo */
-	wakelock_printk_control(1); 
-/* OPPO 2013-03-25 huanggd Add end */
 abort:
 	spin_lock_irqsave(&state_lock, irqflags);
 	if (state == SUSPEND_REQUESTED_AND_SUSPENDED)
@@ -122,9 +119,6 @@ static void late_resume(struct work_struct *work)
 	unsigned long irqflags;
 	int abort = 0;
 
-/* OPPO 2013-03-25 huanggd Add begin for debufinfo */
-	wakelock_printk_control(0); 
-/* OPPO 2013-03-25 huanggd Add end */
 	mutex_lock(&early_suspend_lock);
 	spin_lock_irqsave(&state_lock, irqflags);
 	if (state == SUSPENDED)

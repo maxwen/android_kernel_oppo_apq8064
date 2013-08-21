@@ -40,6 +40,11 @@ config WAKELOCK_STAT
 	---help---
 	  Report wake lock stats in /proc/wakelocks
 
+config WAKELOCK_STAT_EXTENDED
+	bool "Export active and inactive wakelocks to sysfs"
+	depends on WAKELOCK
+	default n
+
 config USER_WAKELOCK
 	bool "Userspace wake locks"
 	depends on PM_SLEEP
