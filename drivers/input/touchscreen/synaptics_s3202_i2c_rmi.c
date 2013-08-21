@@ -81,7 +81,7 @@
 #define MASK_4BIT		0x0F
 #define MASK_3BIT		0x07
 #define MASK_1BIT		0x01
-#define MAX_RETRY_COUNT		2
+#define MAX_RETRY_COUNT		5
 
 /*************** tp register definition **************************/
 //#define REG_MAP_START	0x00DD
@@ -1194,8 +1194,8 @@ retry_block_read:
 	{
 		if (++retry_count == MAX_RETRY_COUNT)
 		{
-			dev_err(&i2c->dev, "%s: address 0x%04x size %d failed:%d\n",
-					__func__, address, size, ret);
+			dev_err(&i2c->dev, "%s: address 0x%04x size %d failed %d retry_count %d\n",
+					__func__, address, size, ret, retry_count);
 			ret = -1;
 		}
 		else
@@ -1595,8 +1595,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 	{
 		print_ts(TS_ERROR, "%s: read device status failed. rc=%d\n", __func__, ret);
 		ts->need_hardware_reset++;
-		if(ts->need_hardware_reset > 3) {
-			 /*检测到I2C错误，硬复位I2C总线以及总线上的所有设备*/
+		if(ts->need_hardware_reset > MAX_RETRY_COUNT) {
 			print_ts(TS_WARNING, "synaptics tp do hardware reset forced\n");
 			synaptics_hardware_reset(ts);
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/			
@@ -1613,7 +1612,6 @@ static void synaptics_ts_work_func(struct work_struct *work)
 #endif
 /* OPPO 2013-05-02 huanggd Add end*/			
 		}
-		/*必须在此处退出work，否则有可能进入下面的synaptics_software_reset()，并清need_hardware_reset，无法硬复位*/
 		goto work_func_end;
 	}
 
