@@ -545,6 +545,7 @@ static ssize_t app_boot_store(struct kobject *kobj, struct kobj_attribute *attr,
 power_attr(app_boot);
 /* OPPO 2012-11-05 Van Modify begin for add interface start reason and boot_mode end */
 
+#ifdef CONFIG_WAKELOCK_STAT_EXTENDED
 /* OPPO 2013-03-25 huanggd Add begin for debufinfo */
 extern int sysfs_get_active_wakelock(char *buf);
 static ssize_t all_active_wakelock_show(struct kobject *kobj, struct kobj_attribute *attr,
@@ -574,6 +575,7 @@ static ssize_t all_inactive_wakelock_store(struct kobject *kobj, struct kobj_att
 }
 power_attr(all_inactive_wakelock);
 /* OPPO 2013-03-25 huanggd Add end */
+#endif
 
 static struct attribute *g[] = {
 	&state_attr.attr,
@@ -598,10 +600,12 @@ static struct attribute *g[] = {
 	&app_boot_attr.attr,
 	&startup_mode_attr.attr,
 /* OPPO 2012-11-05 Van Modify begin for add interface start reason and boot_mode end */
+#ifdef CONFIG_WAKELOCK_STAT_EXTENDED
 /* OPPO 2013-03-25 huanggd Add begin for debufinfo */
 	&all_active_wakelock_attr.attr,
 	&all_inactive_wakelock_attr.attr,		
 /* OPPO 2013-03-25 huanggd Add end */	
+#endif
 	NULL,
 };
 
