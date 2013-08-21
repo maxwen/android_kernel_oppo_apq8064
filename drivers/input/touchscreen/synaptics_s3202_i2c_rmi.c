@@ -58,10 +58,14 @@
 #define TP_UPDATE_FIRMWARE  0
 #endif
 #define SUPPORT_DOUBLE_TAP  0
+
+#define TOUCHSCREEN_SYNAPTICS_WINTEK_FW Syna_Firmware_Data_Wintek
+#define TOUCHSCREEN_SYNAPTICS_WINTEK_FW_OLD Syna_Firmware_Data_Wintek_Old
 /*****************************************************************/
 
 #include "synaptics_firmware_truly.h"
 #include "synaptics_firmware_wintek.h"
+#include "synaptics_firmware_wintek-old.h"
 #include "synaptics_firmware_tpk.h"
 //#define TP_UPDATE_RLE_FILE	"tpupdate.rle"
 //extern int display_rle_file(char *filename);
@@ -1989,7 +1993,7 @@ static void synaptics_ts_delay_work(struct work_struct *work)
 		}
 		else if (ts->vendor_id == TP_VENDOR_WINTEK)
 		{
-			CompleteReflash(ts->client, Syna_Firmware_Data_Wintek);
+			CompleteReflash(ts->client, TOUCHSCREEN_SYNAPTICS_WINTEK_FW);
 		}
 		else if (ts->vendor_id == TP_VENDOR_TPK)
 		{
@@ -2313,7 +2317,7 @@ firmware_update:
 		else if (ts->vendor_id == TP_VENDOR_WINTEK)
 		{
 			fw_update_version = FIRMWARE_WINTEK_VERSION;
-			fw_update_data = Syna_Firmware_Data_Wintek;
+			fw_update_data = TOUCHSCREEN_SYNAPTICS_WINTEK_FW;
 		}
 		else if (ts->vendor_id == TP_VENDOR_TPK)
 		{
