@@ -2032,6 +2032,63 @@ void msm_fb_release_timeline(struct msm_fb_data_type *mfd)
 }
 
 DEFINE_SEMAPHORE(msm_fb_pan_sem);
+
+#ifdef CONFIG_VENDOR_EDIT
+static void msm_fb_set_backlight_on(struct work_struct *work);
+static DECLARE_DELAYED_WORK(startup_backlight_work,
+			    msm_fb_set_backlight_on);
+static void msm_fb_do_refresh(struct work_struct *work);
+static DECLARE_DELAYED_WORK(startup_refresh_work,
+			    msm_fb_do_refresh);
+
+extern struct fb_info *registered_fb[FB_MAX];
+
+static void msm_fb_set_backlight_on(struct work_struct *work)
+{
+	struct fb_info *info = registered_fb[0];
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
+    
+	//fb not registered
+	if (!info) {
+		return;
+	}
+    
+	msm_fb_set_backlight(mfd, 255);
+}
+
+
+static void msm_fb_do_refresh(struct work_struct *work)
+{
+	struct fb_info *info = registered_fb[0];
+
+	//fb not registered
+	if (!info) {
+		return;
+	}
+	
+	down(&msm_fb_pan_sem);
+	mdp_set_dma_pan_info(info, NULL, TRUE);
+	mdp_dma_pan_update(info);
+	up(&msm_fb_pan_sem);
+
+	schedule_delayed_work(&startup_backlight_work,  HZ/4);
+}
+
+int display_rle_file(char *filename)
+{
+	if (!load_565rle_image(filename, bf_supported)){
+		struct fb_info *info = registered_fb[0];
+		struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
+		if (msm_fb_blank_sub(FB_BLANK_UNBLANK, mfd->fbi, mfd->op_enable)) {
+			printk(KERN_ERR "msm_fb_open: can't turn on display!\n");
+			return -1;
+		}
+		schedule_delayed_work(&startup_refresh_work,  HZ/20);
+	}
+	return 0;
+}
+#endif
+
 static int msm_fb_pan_idle(struct msm_fb_data_type *mfd)
 {
 	int ret = 0;
