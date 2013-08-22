@@ -67,8 +67,8 @@
 #include "synaptics_firmware_wintek.h"
 #include "synaptics_firmware_wintek-old.h"
 #include "synaptics_firmware_tpk.h"
-//#define TP_UPDATE_RLE_FILE	"tpupdate.rle"
-//extern int display_rle_file(char *filename);
+#define TP_UPDATE_RLE_FILE	"tpupdate.rle"
+extern int display_rle_file(char *filename);
 
 #include "synaptics_test_rawdata.h"
 
@@ -227,13 +227,13 @@ struct synaptics_ts_data {
 	struct synaptics_rmi4_fn_desc fn11_desc;
 	struct synaptics_rmi4_fn_desc fn34_desc;
 	struct synaptics_rmi4_fn_desc fn54_desc;
-#if SUPPORT_DOUBLE_TAP
-	atomic_t double_tap_number;
-	atomic_t double_tap_enable;
 	wait_queue_head_t  wait_i2c_ready;
 	int i2c_ready;
 	struct wake_lock        double_wake_lock;
 	struct early_suspend early_suspend_power;
+#if SUPPORT_DOUBLE_TAP
+	atomic_t double_tap_number;
+	atomic_t double_tap_enable;
 #endif
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
 	bool s2w_enabled;
@@ -265,9 +265,7 @@ static DEFINE_SEMAPHORE(synaptics_sem);
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void synaptics_ts_early_suspend(struct early_suspend *h);
 static void synaptics_ts_late_resume(struct early_suspend *h);
-#if SUPPORT_DOUBLE_TAP
 static void synaptics_ts_late_resume_power(struct early_suspend *h);
-#endif
 #endif
 
 extern void CompleteReflash(struct i2c_client *client, const unsigned char* firmware_data);
@@ -1551,17 +1549,20 @@ static void synaptics_ts_work_func(struct work_struct *work)
 	uint8_t buf_status[2];
 	struct i2c_msg msg[2];
 	uint8_t data_start_addr = ts->fn11_desc.data_base_addr & MASK_8BIT;
-#if SUPPORT_DOUBLE_TAP	
 	unsigned char double_tap = 0;
-#endif
+	bool input_wakeup_event = false;
 
 	//printk("[SYNAPTICS]%s enter.\n", __func__);
 	down(&synaptics_sem);
 	
-#if SUPPORT_DOUBLE_TAP
 	if (ts->is_tp_suspended)
 	{
+#if SUPPORT_DOUBLE_TAP
 		if (1 == atomic_read(&ts->double_tap_enable)) {
+#endif
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+		if (input_wakeup_active(ts)){
+#endif
 			ret= wait_event_timeout(ts->wait_i2c_ready,
 					ts->i2c_ready,
 					msecs_to_jiffies(1000));
@@ -1575,19 +1576,6 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			goto work_func_end;
 		}
 	}
-#endif
-#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
-	if (ts->is_tp_suspended)
-	{
-		if (input_wakeup_active(ts))
-			// maxwen: TODO is this needed???
-			mdelay(50);
-		else
-			goto work_func_end;	}
-#else
-	if (ts->is_tp_suspended)
-		goto work_func_end;
-#endif
 
 	ret = synaptics_i2c_block_read(ts, F01_DATA_DEVICE_STATUS, 2, buf_status);
 
@@ -1599,17 +1587,22 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			print_ts(TS_WARNING, "synaptics tp do hardware reset forced\n");
 			synaptics_hardware_reset(ts);
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/			
-#if SUPPORT_DOUBLE_TAP
-			if (ts->is_tp_suspended
-				&&atomic_read(&ts->double_tap_enable)) {
-
-				synaptics_set_int_mask(ts, 0);
-				synaptics_set_report_mode(ts, 0x04);
-				enable_irq_wake(ts->client->irq);
-				synaptics_set_int_mask(ts, 1);
-				synaptics_i2c_byte_write(ts, F01_CTRL_DEVICE_CONTROL, 0x80);
-			}
+			if (ts->is_tp_suspended){
+#if SUPPORT_DOUBLE_TAP			
+				if (atomic_read(&ts->double_tap_enable)) {
 #endif
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+				if (input_wakeup_active(ts)){
+#endif
+					synaptics_set_int_mask(ts, 0);
+#if SUPPORT_DOUBLE_TAP
+					synaptics_set_report_mode(ts, 0x04);
+#endif
+					enable_irq_wake(ts->client->irq);
+					synaptics_set_int_mask(ts, 1);
+					synaptics_i2c_byte_write(ts, F01_CTRL_DEVICE_CONTROL, 0x80);
+				}
+			}
 /* OPPO 2013-05-02 huanggd Add end*/			
 		}
 		goto work_func_end;
@@ -1622,17 +1615,22 @@ static void synaptics_ts_work_func(struct work_struct *work)
 			print_ts(TS_WARNING, "TP interrupt register status unnormal , software reset !\n");
 			synaptics_software_reset(ts);
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/			
-#if SUPPORT_DOUBLE_TAP
-			if (ts->is_tp_suspended
-				&&atomic_read(&ts->double_tap_enable)) {
-
-				synaptics_set_int_mask(ts, 0);
-				synaptics_set_report_mode(ts, 0x04);
-				enable_irq_wake(ts->client->irq);
-				synaptics_set_int_mask(ts, 1);
-				synaptics_i2c_byte_write(ts, F01_CTRL_DEVICE_CONTROL, 0x80);
-			}
+			if (ts->is_tp_suspended){
+#if SUPPORT_DOUBLE_TAP			
+				if (atomic_read(&ts->double_tap_enable)) {
 #endif
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+				if (input_wakeup_active(ts)){
+#endif
+					synaptics_set_int_mask(ts, 0);
+#if SUPPORT_DOUBLE_TAP
+					synaptics_set_report_mode(ts, 0x04);
+#endif
+					enable_irq_wake(ts->client->irq);
+					synaptics_set_int_mask(ts, 1);
+					synaptics_i2c_byte_write(ts, F01_CTRL_DEVICE_CONTROL, 0x80);
+				}
+			}
 /* OPPO 2013-05-02 huanggd Add end*/
 		} 
 	}
@@ -1718,6 +1716,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 												if (s2w_exec_power_press) {
 													simulate_power_press();
 													s2w_exec_power_press = false;
+													input_wakeup_event = true;
 													goto work_func_end;
 												}
 											}
@@ -1735,6 +1734,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 														if (s2w_exec_power_press) {
 															simulate_power_press();
 															s2w_exec_power_press = false;
+															input_wakeup_event = true;
 															goto work_func_end;
 														}
 													}
@@ -1749,6 +1749,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 													{
 														if (s2w_exec_power_press) {															simulate_power_press();
 															s2w_exec_power_press = false;
+															input_wakeup_event = true;
 															goto work_func_end;
 														}
 													}
@@ -1788,7 +1789,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 
 				}
 			}
-			else//if (finger_pressed == 0) /*如果没有手指按下，上报抬起事件*/
+			else//if (finger_pressed == 0)
 			{
 				input_point_num = 0;
 				input_mt_sync(ts->input_dev);
@@ -1813,6 +1814,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 					
 						if (diff > tapTime && diff < tooLongTime){
 							simulate_power_press();
+							input_wakeup_event = true;
 							goto work_func_end;
 						}
 					}
@@ -1850,16 +1852,21 @@ work_func_end:
 	if (ts->use_irq)
 		enable_irq(ts->client->irq);
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/	
-#if SUPPORT_DOUBLE_TAP	
-	if (ts->is_tp_suspended && atomic_read(&ts->double_tap_enable)) {
 
-		if (double_tap)
-			wake_lock_timeout(&ts->double_wake_lock, HZ);
-		else
-			wake_unlock(&ts->double_wake_lock);
+	if (ts->is_tp_suspended){
+#if SUPPORT_DOUBLE_TAP	
+		if (atomic_read(&ts->double_tap_enable)) {
+#endif
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+		if (input_wakeup_active(ts)){
+#endif
+			if (double_tap || input_wakeup_event)
+				wake_lock_timeout(&ts->double_wake_lock, HZ);
+			else
+				wake_unlock(&ts->double_wake_lock);
+		}
 	}
 	
-#endif	
 /* OPPO 2013-05-02 huanggd Add end*/
 
 	up(&synaptics_sem);
@@ -1884,13 +1891,19 @@ static irqreturn_t synaptics_ts_irq_handler(int irq, void *dev_id)
 	disable_irq_nosync(ts->client->irq);
 	queue_work(synaptics_wq, &ts->work);
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/	
+
+	if (ts->is_tp_suspended){
 #if SUPPORT_DOUBLE_TAP	
-	if (ts->is_tp_suspended
-		&& atomic_read(&ts->double_tap_enable)) {
-		wake_lock_timeout(&ts->double_wake_lock, HZ);
-		//print_ts(TS_DEBUG, KERN_INFO "[%s]  \n", __func__);
-	}
+		if (atomic_read(&ts->double_tap_enable)) {
 #endif
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+		if (input_wakeup_active(ts)){
+#endif
+			wake_lock_timeout(&ts->double_wake_lock, HZ);
+			//print_ts(TS_DEBUG, KERN_INFO "[%s]  \n", __func__);
+		}
+	}
+
 /* OPPO 2013-05-02 huanggd Add end*/
 	return IRQ_HANDLED;
 }
@@ -2261,9 +2274,7 @@ static int synaptics_ts_probe(
 	INIT_WORK(&ts->work, synaptics_ts_work_func);
 	INIT_DELAYED_WORK(&ts->delay_work, synaptics_ts_delay_work);
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/		
-#if SUPPORT_DOUBLE_TAP
 	wake_lock_init(&ts->double_wake_lock, WAKE_LOCK_SUSPEND, "touchpanel");
-#endif
 /* OPPO 2013-05-02 huanggd Add end*/	
 	ts->client = client;
 	i2c_set_clientdata(client, ts);
@@ -2295,7 +2306,7 @@ detect_device:
 	if (ret < 0)
 		goto err_detect_failed;
 
-	print_ts(TS_ERROR, "[SYNAP] vendor: %d version: %02x%02x\n",
+	print_ts(TS_ERROR, "vendor: %d version: %02x%02x\n",
 			ts->vendor_id, ts->version[2], ts->version[3]);
 
 	force_update = 0;
@@ -2326,7 +2337,7 @@ firmware_update:
 			|| (ts->version[2] != ((fw_update_version>>8)&0xFF)
 				|| ts->version[3] < (fw_update_version&0xFF))))
 		{
-			//display_rle_file(TP_UPDATE_RLE_FILE);
+			display_rle_file(TP_UPDATE_RLE_FILE);
 			CompleteReflash(client, fw_update_data);
 			goto detect_device;
 		}
@@ -2522,7 +2533,6 @@ firmware_update:
 	ts->early_suspend.resume = synaptics_ts_late_resume;
 	register_early_suspend(&ts->early_suspend);
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/	
-#if SUPPORT_DOUBLE_TAP
 	ts->early_suspend_power.level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 1;
 	ts->early_suspend_power.suspend = NULL;
 	ts->early_suspend_power.resume = synaptics_ts_late_resume_power;
@@ -2530,7 +2540,6 @@ firmware_update:
 
 	init_waitqueue_head(&ts->wait_i2c_ready);
 	ts->i2c_ready = 1;
-#endif
 /* OPPO 2013-05-02 huanggd Add end*/	
 #endif
 
@@ -2548,9 +2557,7 @@ err_input_dev_alloc_failed:
 err_detect_failed:
 	if (ts->power)
 		ts->power(0);
-#if SUPPORT_DOUBLE_TAP	
 	wake_lock_destroy(&ts->double_wake_lock);
-#endif
 //err_power_failed:
 	kfree(ts);
 err_alloc_data_failed:
@@ -2581,29 +2588,23 @@ static int synaptics_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 
 #if SUPPORT_DOUBLE_TAP
 	if (1 == atomic_read(&ts->double_tap_enable))
+#endif
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+	if (input_wakeup_active(ts))
+#endif
 	{
+		print_ts(TS_INFO, KERN_INFO "%s: input_wakeup_active\n", __func__);
 		synaptics_set_int_mask(ts, 0);
+#if SUPPORT_DOUBLE_TAP
 		synaptics_set_report_mode(ts, 0x04);
+#endif
 		enable_irq_wake(client->irq);
 		synaptics_set_int_mask(ts, 1);
 		synaptics_i2c_byte_write(ts, F01_CTRL_DEVICE_CONTROL, 0x80);
 		up(&synaptics_sem);
 		return 0;
 	}
-#endif
-#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
-	if (input_wakeup_active(ts))
-	{
-		print_ts(TS_INFO, KERN_INFO "%s: input_wakeup_active\n", __func__);
-		synaptics_set_int_mask(ts, 0);
-		// maxwen: else we dont get any input event
-		//synaptics_set_report_mode(ts, 0x04);
-		enable_irq_wake(client->irq);
-		synaptics_set_int_mask(ts, 1);
-		up(&synaptics_sem);
-		return 0;
-	}
-#endif
+
 	if (ts->use_irq)
 		disable_irq(client->irq);
 	else
@@ -2637,7 +2638,12 @@ static int synaptics_ts_resume(struct i2c_client *client)
 
 #if SUPPORT_DOUBLE_TAP
 	if (1 == atomic_read(&ts->double_tap_enable))
+#endif
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+	if (input_wakeup_active(ts))
+#endif
 	{
+		print_ts(TS_INFO, KERN_INFO "%s: input_wakeup_active\n", __func__);
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/		
 		if (ts->power) {
 			ret = ts->power(1);
@@ -2658,22 +2664,7 @@ static int synaptics_ts_resume(struct i2c_client *client)
 		up(&synaptics_sem);
 		return 0;
 	}
-#endif
-#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
-	if (input_wakeup_active(ts))
-	{
-		print_ts(TS_INFO, KERN_INFO "%s: input_wakeup_active\n", __func__);
-		synaptics_set_int_mask(ts, 0);
-		synaptics_init_panel(ts);
-		synaptics_set_report_mode(ts, ts->report_mode);
 
-		ts->is_tp_suspended = 0;
-		disable_irq_wake(client->irq);
-		synaptics_set_int_mask(ts, 1);
-		up(&synaptics_sem);
-		return 0;
-	}
-#endif
 	if (ts->power) {
 		ret = ts->power(1);
 		if (ret < 0)
@@ -2711,16 +2702,20 @@ static void synaptics_ts_late_resume(struct early_suspend *h)
 	synaptics_ts_resume(ts->client);
 }
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/	
-#if SUPPORT_DOUBLE_TAP
 static void synaptics_ts_late_resume_power(struct early_suspend *h)
 {
 	struct synaptics_ts_data *ts;
 	int ret;
 	ts = container_of(h, struct synaptics_ts_data, early_suspend_power);
 
+#if SUPPORT_DOUBLE_TAP
 	if (0 == atomic_read(&ts->double_tap_enable))
 		return;
-	
+#endif
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+	if (!input_wakeup_active(ts))
+		return;
+#endif
 	disable_irq(ts->client->irq);
 	if (ts->power) {
 		ret = ts->power(0);
@@ -2729,7 +2724,7 @@ static void synaptics_ts_late_resume_power(struct early_suspend *h)
 	}
 }
 
-static int synaptics_ts_suspend_double_tap(struct i2c_client *client, pm_message_t mesg)
+static int synaptics_ts_suspend_input_event(struct i2c_client *client, pm_message_t mesg)
 {
 	struct synaptics_ts_data *ts = i2c_get_clientdata(client);
 	ts->i2c_ready = 0;
@@ -2737,7 +2732,7 @@ static int synaptics_ts_suspend_double_tap(struct i2c_client *client, pm_message
 	return 0;
 }
 
-static int synaptics_ts_resume_double_tap(struct i2c_client *client)
+static int synaptics_ts_resume_input_event(struct i2c_client *client)
 {
 	struct synaptics_ts_data *ts = i2c_get_clientdata(client);
 	ts->i2c_ready = 1;
@@ -2745,7 +2740,6 @@ static int synaptics_ts_resume_double_tap(struct i2c_client *client)
 	//printk("%s\n", __func__);
 	return 0;
 }
-#endif
 /* OPPO 2013-05-02 huanggd Add end*/	
 #endif
 
@@ -2761,10 +2755,8 @@ static struct i2c_driver synaptics_ts_driver = {
 	.suspend	= synaptics_ts_suspend,
 	.resume		= synaptics_ts_resume,
 #else
-#if SUPPORT_DOUBLE_TAP
-	.suspend	= synaptics_ts_suspend_double_tap,
-	.resume		= synaptics_ts_resume_double_tap,
-#endif	
+	.suspend	= synaptics_ts_suspend_input_event,
+	.resume		= synaptics_ts_resume_input_event,
 #endif
 	.id_table	= synaptics_ts_id,
 	.driver = {
