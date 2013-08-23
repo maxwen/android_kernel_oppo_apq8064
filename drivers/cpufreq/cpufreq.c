@@ -503,6 +503,11 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 		if (!curr_policy)
 			continue;
 
+		if (!strcmp(curr_policy->user_policy.governor->name, str_governor)){
+			cpufreq_cpu_put(curr_policy);
+			continue;
+		}
+
 		ret = cpufreq_get_policy(&new_policy, cpu);
 		if (ret){
 			cpufreq_cpu_put(curr_policy);
@@ -729,6 +734,11 @@ static ssize_t store_scaling_max_freq(struct cpufreq_policy *policy,
 		if (!curr_policy)
 			continue;
 
+		if (curr_policy->user_policy.max == max_freq){
+			cpufreq_cpu_put(curr_policy);
+			continue;
+		}
+
 		ret = cpufreq_get_policy(&new_policy, cpu);
 		if (ret){
 			cpufreq_cpu_put(curr_policy);
@@ -793,6 +803,11 @@ static ssize_t store_scaling_min_freq(struct cpufreq_policy *policy,
 		curr_policy = cpufreq_cpu_get(cpu);
 		if (!curr_policy)
 			continue;
+
+		if (curr_policy->user_policy.min == min_freq){
+			cpufreq_cpu_put(curr_policy);
+			continue;
+		}
 
 		ret = cpufreq_get_policy(&new_policy, cpu);
 		if (ret){
