@@ -2311,7 +2311,7 @@ static int __init msm_audio_init(void)
 		(socinfo_get_id() == 130) ||
 		(machine_is_apq8064_mtp() &&
 		(SOCINFO_VERSION_MINOR(version) == 1))) {
-		pr_info("%s: Not APQ8064 in SLIMBUS mode\n", __func__);
+		pr_err("%s: Not APQ8064 in SLIMBUS mode\n", __func__);
 		return -ENODEV;
 	}
 

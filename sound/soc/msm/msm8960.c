@@ -1768,7 +1768,7 @@ static int __init msm8960_audio_init(void)
 	int ret;
 
 	if (!soc_class_is_msm8960()) {
-		pr_debug("%s: Not the right machine type\n", __func__);
+		pr_err("%s: Not the right machine type\n", __func__);
 		return -ENODEV ;
 	}
 
