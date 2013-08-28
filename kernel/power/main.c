@@ -521,20 +521,7 @@ extern char boot_mode[];
 static ssize_t app_boot_show(struct kobject *kobj, struct kobj_attribute *attr,
 			     char *buf)
 {
-#if 1
 	return sprintf(buf, "%s", boot_mode);
-#else
-    if (reboot_reason == 0x77665501)
-        return sprintf(buf, "reboot");
-    else if (reboot_reason == 0x7766550a)
-        return sprintf(buf, "kernel");
-    else if (reboot_reason == 0x7766550b)
-        return sprintf(buf, "modem");
-    else if (reboot_reason == 0x7766550c)
-        return sprintf(buf, "android");
-    else
-        return sprintf(buf, "normal");
-#endif
 }
  
 static ssize_t app_boot_store(struct kobject *kobj, struct kobj_attribute *attr,

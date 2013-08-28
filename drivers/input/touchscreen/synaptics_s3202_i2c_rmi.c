@@ -251,14 +251,10 @@ struct synaptics_ts_data {
 extern int get_boot_mode(void);
 enum{
 	MSM_BOOT_MODE__NORMAL,
-	MSM_BOOT_MODE__FASTBOOT,
 	MSM_BOOT_MODE__RECOVERY,
 	MSM_BOOT_MODE__FACTORY,
-	MSM_BOOT_MODE__RF,
-	MSM_BOOT_MODE__WLAN,
 	MSM_BOOT_MODE__CHARGE,
 };
-
 static struct synaptics_ts_data   *syna_ts_data;
 static DEFINE_SEMAPHORE(synaptics_sem);
 

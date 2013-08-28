@@ -163,45 +163,54 @@ static struct kobject *systeminfo_kobj;
 
 enum{
 	MSM_BOOT_MODE__NORMAL,
-	MSM_BOOT_MODE__FASTBOOT,
 	MSM_BOOT_MODE__RECOVERY,
 	MSM_BOOT_MODE__FACTORY,
-	MSM_BOOT_MODE__RF,
-	MSM_BOOT_MODE__WLAN,
 	MSM_BOOT_MODE__CHARGE,
 };
 
 static int ftm_mode = 0;
 
-int __init board_mfg_mode_init(char *s)
+/* OPPO 2012-11-05 Van Modify begin for add interface start reason and boot_mode begin */
+char pwron_event[16];
+
+static int __init start_reason_setup(char *str)
 {
-	if (!strcmp(s, "normal"))
+    strcpy(pwron_event, str);
+    printk(KERN_INFO "%s: parse poweron reason %s\n", __func__, pwron_event);
+	
+	return 1;
+}
+__setup("androidboot.startupmode=", start_reason_setup);
+
+char boot_mode[16];
+static int __init boot_mode_setup(char *str)
+{
+    strcpy(boot_mode, str);
+
+    printk(KERN_INFO "%s: parse boot_mode is %s\n", __func__, boot_mode);
+
+	if (!strcmp(boot_mode, "normal"))
 		ftm_mode = MSM_BOOT_MODE__NORMAL;
-	else if (!strcmp(s, "factory2"))
+	else if (!strcmp(boot_mode, "factory"))
 		ftm_mode = MSM_BOOT_MODE__FACTORY;
-	else if (!strcmp(s, "ftmrecovery"))//huanggd for do not update tp firmware when in recovery mode
+	else if (!strcmp(boot_mode, "recovery"))
 		ftm_mode = MSM_BOOT_MODE__RECOVERY;
-	else if (!strcmp(s, "charge"))
+	else if (!strcmp(boot_mode, "charger"))
 		ftm_mode = MSM_BOOT_MODE__CHARGE;
-	else if (!strcmp(s, "ftmwifi"))
-		ftm_mode = MSM_BOOT_MODE__WLAN;
-	else if (!strcmp(s, "ftmrf"))
-		ftm_mode = MSM_BOOT_MODE__RF;
 	else 
 		ftm_mode = MSM_BOOT_MODE__NORMAL;
 
-	//pr_err("board_mfg_mode_init" "ftm_mode=%d\n", ftm_mode);
-	
-	return 0;
-
+    printk(KERN_INFO "%s: parse ftm_mode is %d\n", __func__, ftm_mode);
+    return 1;
 }
-__setup("oppo_ftm_mode=", board_mfg_mode_init);
+__setup("androidboot.mode=", boot_mode_setup);
+/* OPPO 2012-11-05 Van Modify begin for add interface start reason and boot_mode end */
 
 int get_boot_mode(void)
 {
 	return ftm_mode;
 }
-
+	
 static ssize_t ftmmode_show(struct kobject *kobj, struct kobj_attribute *attr,
 			     char *buf)
 {
@@ -4323,28 +4332,6 @@ static void __init apq8064_cdp_init(void)
 	}
 #endif /* VENDOR_EDIT */
 }
-/* OPPO 2012-11-05 Van Modify begin for add interface start reason and boot_mode begin */
-char pwron_event[16];
-
-static int __init start_reason_setup(char *str)
-{
-    strcpy(pwron_event, str);
-    printk(KERN_INFO "%s: parse poweron reason %s\n", __func__, pwron_event);
-	
-	return 1;
-}
-__setup("androidboot.startupmode=", start_reason_setup);
-
-char boot_mode[16];
-static int __init boot_mode_setup(char *str)
-{
-    strcpy(boot_mode, str);
-
-    printk(KERN_INFO "%s: parse boot_mode is %s\n", __func__, boot_mode);
-    return 1;
-}
-__setup("androidboot.mode=", boot_mode_setup);
-/* OPPO 2012-11-05 Van Modify begin for add interface start reason and boot_mode end */
 
 MACHINE_START(APQ8064_CDP, "QCT APQ8064 CDP")
 	.map_io = apq8064_map_io,
