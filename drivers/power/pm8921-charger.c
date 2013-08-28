@@ -194,6 +194,19 @@ static int logo_level  = 1;
 		if (logo_level  >= (level)) \
 			printk(__VA_ARGS__); \
    } while (0) 
+
+/* offmode charging led */
+extern int get_boot_mode(void);
+enum{
+	MSM_BOOT_MODE__NORMAL,
+	MSM_BOOT_MODE__RECOVERY,
+	MSM_BOOT_MODE__FACTORY,
+	MSM_BOOT_MODE__CHARGE,
+};
+
+extern void sled_turn_off(void);
+extern void sled_charging_internal(int value);
+
 #endif /*CONFIG_VENDOR_EDIT*/
 /* OPPO 2012-08-22 chendx Add end */
 
@@ -3561,10 +3574,16 @@ static void handle_usb_insertion_removal(struct pm8921_chg_chip *chip)
 		/* USB unplugged reset target current */
 		usb_target_ma = 0;
 		pm8921_chg_disable_irq(chip, CHG_GONE_IRQ);
-	/* OPPO 2012-08-09 chendx Add begin for USBIN charger remove from otg driver */
-	#ifdef CONFIG_VENDOR_EDIT
+
+/* OPPO 2012-08-09 chendx Add begin for USBIN charger remove from otg driver */
+#ifdef CONFIG_VENDOR_EDIT
 		//pm8921_chg_connected(USB_INVALID_CHARGER);
-	#endif
+		
+		/* offmode charging led */
+		if (MSM_BOOT_MODE__CHARGE == get_boot_mode()){
+			sled_turn_off();
+		}
+#endif
 	
 /* OPPO 2013-02-28 chendx Add begin for notify with bms */
 		bms_notify_is_charging_check(0,chip);
@@ -5743,6 +5762,11 @@ static void update_heartbeat(struct work_struct *work)
 		print_pm8921(DEBUG_ERROR,"Charge info,Charger voltage=%dmv,chg_current=%dmA,Batt health=%s\n",
 					chip->charger_voltage,chip->charge_current,batt_health[chip->batt_health]);
 		soc_backup = chip->report_calib_soc ;
+
+		/* offmode charging led */
+		if (MSM_BOOT_MODE__CHARGE == get_boot_mode()){
+			sled_charging_internal(chip->report_calib_soc);
+		}
 	}
 	
 	/* check is battery connect when charger plugin */
