@@ -18,6 +18,51 @@
 #include "devices.h"
 #include "board-8930.h"
 
+/* GSBI10 UART configurations */
+static struct gpiomux_setting gsbi10_uart_cfg = {
+	.func = GPIOMUX_FUNC_2,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+
+static struct msm_gpiomux_config msm8930_gsbi10_uart_configs[] __initdata = {
+	{
+		.gpio	= 71,	/* GSBI10 UART TX */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi10_uart_cfg,
+		},
+	},
+	{
+		.gpio	= 72, /* GSBI10 UART RX */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi10_uart_cfg,
+		},
+	},
+};
+
+/* GSBI11 UART configurations */
+static struct gpiomux_setting gsbi11_uart_cfg = {
+	.func = GPIOMUX_FUNC_1,
+	.drv = GPIOMUX_DRV_10MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+
+static struct msm_gpiomux_config msm8930_gsbi11_uart_configs[] __initdata = {
+	{
+		.gpio	= 38,   /* GSBI11 UART TX */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi11_uart_cfg,
+		},
+	},
+	{
+		.gpio	= 39, /* GSBI11 UART RX */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi11_uart_cfg,
+		},
+	},
+};
+
+
 /* The SPI configurations apply to GSBI 1*/
 static struct gpiomux_setting spi_active = {
 	.func = GPIOMUX_FUNC_1,
@@ -124,6 +169,12 @@ static struct gpiomux_setting audio_mbhc = {
 static struct gpiomux_setting audio_spkr_boost = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+
+static struct gpiomux_setting audio_useuro_switch = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
@@ -552,6 +603,27 @@ static struct msm_gpiomux_config msm8960_audio_mbhc_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &audio_mbhc,
 		},
 	},
+	{
+		.gpio = 80,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &audio_useuro_switch,
+		},
+	},
+};
+
+static struct msm_gpiomux_config msm8960_audio_mbhc_configs_sglte[] __initdata = {
+	{
+		.gpio = 50,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &audio_mbhc,
+		},
+	},
+	{
+		.gpio = 66,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &audio_useuro_switch,
+		},
+	},
 };
 
 static struct msm_gpiomux_config msm8960_audio_spkr_configs[] __initdata = {
@@ -562,7 +634,6 @@ static struct msm_gpiomux_config msm8960_audio_spkr_configs[] __initdata = {
 		},
 	},
 };
-
 
 static struct msm_gpiomux_config msm8960_audio_auxpcm_configs[] __initdata = {
 	{
@@ -979,9 +1050,22 @@ static struct msm_gpiomux_config msm8930_external_vfr_configs[] __initdata = {
 
 int __init sglte8930_init_gpiomux(void)
 {
+	int minor_ver = SOCINFO_VERSION_MINOR(socinfo_get_platform_version());
+	int major_ver = SOCINFO_VERSION_MAJOR(socinfo_get_platform_version());
+
 	/* For 8960 Fusion 2.2 Primary IPC */
 	msm_gpiomux_install(msm8930_fusion_gsbi_configs,
 			ARRAY_SIZE(msm8930_fusion_gsbi_configs));
+	/* For 8930 SGLTE Serial Console */
+	if (machine_is_msm8930_evt() && major_ver == 1) {
+		if (minor_ver == 0)
+			msm_gpiomux_install(msm8930_gsbi10_uart_configs,
+				ARRAY_SIZE(msm8930_gsbi10_uart_configs));
+		else if (minor_ver == 1)
+			msm_gpiomux_install(msm8930_gsbi11_uart_configs,
+				ARRAY_SIZE(msm8930_gsbi11_uart_configs));
+	}
+
 	/* For SGLTE 8960 Fusion External VFR */
 	msm_gpiomux_install(msm8930_external_vfr_configs,
 			ARRAY_SIZE(msm8930_external_vfr_configs));
@@ -1010,6 +1094,9 @@ int __init sglte8930_init_gpiomux(void)
 
 	msm_gpiomux_install(msm8930_sd_det_config_evt,
 			ARRAY_SIZE(msm8930_sd_det_config_evt));
+
+	msm_gpiomux_install(msm8960_audio_mbhc_configs_sglte,
+			ARRAY_SIZE(msm8960_audio_mbhc_configs_sglte));
 
 	return 0;
 }

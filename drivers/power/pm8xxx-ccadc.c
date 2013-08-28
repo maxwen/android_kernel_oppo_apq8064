@@ -81,7 +81,7 @@ struct pm8xxx_ccadc_chip {
 	int			r_sense_uohm;
 	struct delayed_work	calib_ccadc_work;
 	struct mutex		calib_mutex;
-	bool                    periodic_wakeup;
+	bool			periodic_wakeup;
 };
 
 static struct pm8xxx_ccadc_chip *the_chip;
@@ -380,7 +380,8 @@ static void __pm8xxx_calib_ccadc(int sample_count)
 		return;
 	}
 
-	 pr_debug("sample_count = %d\n", sample_count);
+	pr_debug("sample_count = %d\n", sample_count);
+
 	mutex_lock(&the_chip->calib_mutex);
 	rc = pm8xxx_readb(the_chip->dev->parent,
 					ADC_ARB_SECP_CNTRL, &sec_cntrl);
@@ -521,14 +522,15 @@ bail:
 calibration_unlock:
 	mutex_unlock(&the_chip->calib_mutex);
 }
+
 static void pm8xxx_calib_ccadc_quick(void)
 {
-         __pm8xxx_calib_ccadc(2);
+	__pm8xxx_calib_ccadc(2);
 }
 
- void pm8xxx_calib_ccadc(void)
+void pm8xxx_calib_ccadc(void)
 {
-         __pm8xxx_calib_ccadc(SAMPLE_COUNT);
+	__pm8xxx_calib_ccadc(SAMPLE_COUNT);
 }
 EXPORT_SYMBOL(pm8xxx_calib_ccadc);
 
@@ -788,10 +790,20 @@ static int __devexit pm8xxx_ccadc_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int pm8xxx_ccadc_suspend(struct device *dev)
+{
+	struct pm8xxx_ccadc_chip *chip = dev_get_drvdata(dev);
+
+	cancel_delayed_work_sync(&chip->calib_ccadc_work);
+
+	return 0;
+}
+
 #define CCADC_CALIB_TEMP_THRESH 20
 static int pm8xxx_ccadc_resume(struct device *dev)
 {
-	int rc, batt_temp, delta_temp;
+  int rc, delta_temp;
+	int batt_temp = 0;
 	unsigned long current_time_sec;
 	unsigned long time_since_last_calib;
 
@@ -805,10 +817,12 @@ static int pm8xxx_ccadc_resume(struct device *dev)
 		pr_err("unable to get current time: %d\n", rc);
 		return 0;
 	}
-    if (the_chip->periodic_wakeup) {
-    	pm8xxx_calib_ccadc_quick();
-    	return 0;
-    }
+
+	if (the_chip->periodic_wakeup) {
+		pm8xxx_calib_ccadc_quick();
+		return 0;
+	}
+
 	if (current_time_sec > the_chip->last_calib_time) {
 		time_since_last_calib = current_time_sec -
 					the_chip->last_calib_time;
@@ -819,14 +833,19 @@ static int pm8xxx_ccadc_resume(struct device *dev)
 				|| delta_temp > CCADC_CALIB_TEMP_THRESH) {
 			the_chip->last_calib_time = current_time_sec;
 			the_chip->last_calib_temp = batt_temp;
-			cancel_delayed_work(&the_chip->calib_ccadc_work);
 			schedule_delayed_work(&the_chip->calib_ccadc_work, 0);
+		} else {
+			schedule_delayed_work(&the_chip->calib_ccadc_work,
+				msecs_to_jiffies(the_chip->calib_delay_ms -
+					(time_since_last_calib * 1000)));
 		}
 	}
+
 	return 0;
 }
 
 static const struct dev_pm_ops pm8xxx_ccadc_pm_ops = {
+	.suspend	= pm8xxx_ccadc_suspend,
 	.resume		= pm8xxx_ccadc_resume,
 };
 

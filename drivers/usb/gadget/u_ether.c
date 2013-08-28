@@ -545,6 +545,11 @@ static void tx_complete(struct usb_ep *ep, struct usb_request *req)
 				switch (retval) {
 				default:
 					DBG(dev, "tx queue err %d\n", retval);
+					new_req->length = 0;
+					spin_lock(&dev->req_lock);
+					list_add_tail(&new_req->list,
+							&dev->tx_reqs);
+					spin_unlock(&dev->req_lock);
 					break;
 				case 0:
 					spin_lock(&dev->req_lock);
@@ -554,7 +559,13 @@ static void tx_complete(struct usb_ep *ep, struct usb_request *req)
 				}
 			} else {
 				spin_lock(&dev->req_lock);
-				list_add(&new_req->list, &dev->tx_reqs);
+				/*
+				 * Put the idle request at the back of the
+				 * queue. The xmit function will put the
+				 * unfinished request at the beginning of the
+				 * queue.
+				 */
+				list_add_tail(&new_req->list, &dev->tx_reqs);
 				spin_unlock(&dev->req_lock);
 			}
 		} else {
@@ -574,7 +585,7 @@ static inline int is_promisc(u16 cdc_filter)
 	return cdc_filter & USB_CDC_PACKET_TYPE_PROMISCUOUS;
 }
 
-static void alloc_tx_buffer(struct eth_dev *dev)
+static int alloc_tx_buffer(struct eth_dev *dev)
 {
 	struct list_head	*act;
 	struct usb_request	*req;
@@ -591,7 +602,19 @@ static void alloc_tx_buffer(struct eth_dev *dev)
 		if (!req->buf)
 			req->buf = kmalloc(dev->tx_req_bufsize,
 						GFP_ATOMIC);
+			if (!req->buf)
+				goto free_buf;
 	}
+	return 0;
+
+free_buf:
+	/* tx_req_bufsize = 0 retries mem alloc on next eth_start_xmit */
+	dev->tx_req_bufsize = 0;
+	list_for_each(act, &dev->tx_reqs) {
+		req = container_of(act, struct usb_request, list);
+		kfree(req->buf);
+	}
+	return -ENOMEM;
 }
 
 static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
@@ -623,8 +646,11 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 	}
 
 	/* Allocate memory for tx_reqs to support multi packet transfer */
-	if (multi_pkt_xfer && !dev->tx_req_bufsize)
-		alloc_tx_buffer(dev);
+	if (multi_pkt_xfer && !dev->tx_req_bufsize) {
+		retval = alloc_tx_buffer(dev);
+		if (retval < 0)
+			return -ENOMEM;
+	}
 
 	/* apply outgoing CDC or RNDIS filters */
 	if (!is_promisc(cdc_filter)) {
@@ -760,6 +786,8 @@ static netdev_tx_t eth_start_xmit(struct sk_buff *skb,
 	if (retval) {
 		if (!multi_pkt_xfer)
 			dev_kfree_skb_any(skb);
+		else
+			req->length = 0;
 drop:
 		dev->net->stats.tx_dropped++;
 		spin_lock_irqsave(&dev->req_lock, flags);

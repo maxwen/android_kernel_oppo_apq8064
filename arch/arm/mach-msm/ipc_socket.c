@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -21,16 +21,13 @@
 #include <linux/gfp.h>
 #include <linux/msm_ipc.h>
 
-#ifdef CONFIG_ANDROID_PARANOID_NETWORK
-#include <linux/android_aid.h>
-#endif
-
 #include <asm/string.h>
 #include <asm/atomic.h>
 
 #include <net/sock.h>
 
 #include "ipc_router.h"
+#include "msm_ipc_router_security.h"
 
 #define msm_ipc_sk(sk) ((struct msm_ipc_sock *)(sk))
 #define msm_ipc_sk_port(sk) ((struct msm_ipc_port *)(msm_ipc_sk(sk)->port))
@@ -38,21 +35,6 @@
 static int sockets_enabled;
 static struct proto msm_ipc_proto;
 static const struct proto_ops msm_ipc_proto_ops;
-
-#ifdef CONFIG_ANDROID_PARANOID_NETWORK
-static inline int check_permissions(void)
-{
-	int rc = 0;
-	if (!current_euid() || in_egroup_p(AID_NET_RAW))
-		rc = 1;
-	return rc;
-}
-# else
-static inline int check_permissions(void)
-{
-	return 1;
-}
-#endif
 
 static struct sk_buff_head *msm_ipc_router_build_msg(unsigned int num_sect,
 					  struct iovec const *msg_sect,
@@ -130,7 +112,7 @@ msg_build_failure:
 static int msm_ipc_router_extract_msg(struct msghdr *m,
 				      struct sk_buff_head *msg_head)
 {
-	struct sockaddr_msm_ipc *addr = (struct sockaddr_msm_ipc *)m->msg_name;
+	struct sockaddr_msm_ipc *addr;
 	struct rr_header *hdr;
 	struct sk_buff *temp;
 	int offset = 0, data_len = 0, copy_len;
@@ -139,10 +121,11 @@ static int msm_ipc_router_extract_msg(struct msghdr *m,
 		pr_err("%s: Invalid pointers passed\n", __func__);
 		return -EINVAL;
 	}
+	addr = (struct sockaddr_msm_ipc *)m->msg_name;
 
 	temp = skb_peek(msg_head);
 	hdr = (struct rr_header *)(temp->data);
-	if (addr || (hdr->src_port_id != IPC_ROUTER_ADDRESS)) {
+	if (addr && (hdr->src_port_id != IPC_ROUTER_ADDRESS)) {
 		addr->family = AF_MSM_IPC;
 		addr->address.addrtype = MSM_IPC_ADDR_ID;
 		addr->address.addr.port_addr.node_id = hdr->src_node_id;
@@ -188,12 +171,6 @@ static int msm_ipc_router_create(struct net *net,
 {
 	struct sock *sk;
 	struct msm_ipc_port *port_ptr;
-	void *pil;
-
-	if (!check_permissions()) {
-		pr_err("%s: Do not have permissions\n", __func__);
-		return -EPERM;
-	}
 
 	if (unlikely(protocol != 0)) {
 		pr_err("%s: Protocol not supported\n", __func__);
@@ -221,13 +198,12 @@ static int msm_ipc_router_create(struct net *net,
 		return -ENOMEM;
 	}
 
+	port_ptr->check_send_permissions = msm_ipc_check_send_permissions;
 	sock->ops = &msm_ipc_proto_ops;
 	sock_init_data(sock, sk);
 	sk->sk_rcvtimeo = DEFAULT_RCV_TIMEO;
 
-	pil = msm_ipc_load_default_node();
 	msm_ipc_sk(sk)->port = port_ptr;
-	msm_ipc_sk(sk)->default_pil = pil;
 
 	return 0;
 }
@@ -239,9 +215,16 @@ int msm_ipc_router_bind(struct socket *sock, struct sockaddr *uaddr,
 	struct sock *sk = sock->sk;
 	struct msm_ipc_port *port_ptr;
 	int ret;
+	void *pil;
 
 	if (!sk)
 		return -EINVAL;
+
+	if (!check_permissions()) {
+		pr_err("%s: %s Do not have permissions\n",
+			__func__, current->comm);
+		return -EPERM;
+	}
 
 	if (!uaddr_len) {
 		pr_err("%s: Invalid address length\n", __func__);
@@ -262,6 +245,8 @@ int msm_ipc_router_bind(struct socket *sock, struct sockaddr *uaddr,
 	if (!port_ptr)
 		return -ENODEV;
 
+	pil = msm_ipc_load_default_node();
+	msm_ipc_sk(sk)->default_pil = pil;
 	lock_sock(sk);
 
 	ret = msm_ipc_router_register_server(port_ptr, &addr->address);
@@ -295,6 +280,9 @@ static int msm_ipc_router_sendmsg(struct kiocb *iocb, struct socket *sock,
 		ret = -ENOMEM;
 		goto out_sendmsg;
 	}
+
+	if (port_ptr->type == CLIENT_PORT)
+		wait_for_irsc_completion();
 
 	ret = msm_ipc_router_send_to(port_ptr, msg, &dest->address);
 	if (ret == (IPC_ROUTER_HDR_SIZE + total_len))
@@ -370,6 +358,7 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 	struct msm_ipc_server_info *srv_info = NULL;
 	unsigned int n, srv_info_sz = 0;
 	int ret;
+	void *pil;
 
 	if (!sk)
 		return -EINVAL;
@@ -397,6 +386,8 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 		break;
 
 	case IPC_ROUTER_IOCTL_LOOKUP_SERVER:
+		pil = msm_ipc_load_default_node();
+		msm_ipc_sk(sk)->default_pil = pil;
 		ret = copy_from_user(&server_arg, (void *)arg,
 				     sizeof(server_arg));
 		if (ret) {
@@ -411,6 +402,14 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 		if (server_arg.num_entries_in_array) {
 			srv_info_sz = server_arg.num_entries_in_array *
 					sizeof(*srv_info);
+			if ((srv_info_sz / sizeof(*srv_info)) !=
+			    server_arg.num_entries_in_array) {
+				pr_err("%s: Integer Overflow %d * %d\n",
+					__func__, sizeof(*srv_info),
+					server_arg.num_entries_in_array);
+				ret = -EINVAL;
+				break;
+			}
 			srv_info = kmalloc(srv_info_sz, GFP_KERNEL);
 			if (!srv_info) {
 				ret = -ENOMEM;
@@ -441,6 +440,12 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 
 	case IPC_ROUTER_IOCTL_BIND_CONTROL_PORT:
 		ret = msm_ipc_router_bind_control_port(port_ptr);
+		break;
+
+	case IPC_ROUTER_IOCTL_CONFIG_SEC_RULES:
+		ret = msm_ipc_config_sec_rules((void *)arg);
+		if (ret != -EPERM)
+			port_ptr->type = IRSC_PORT;
 		break;
 
 	default:
@@ -481,7 +486,8 @@ static int msm_ipc_router_close(struct socket *sock)
 
 	lock_sock(sk);
 	ret = msm_ipc_router_close_port(port_ptr);
-	msm_ipc_unload_default_node(pil);
+	if (pil)
+		msm_ipc_unload_default_node(pil);
 	release_sock(sk);
 	sock_put(sk);
 	sock->sk = NULL;

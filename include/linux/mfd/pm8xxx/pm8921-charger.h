@@ -240,6 +240,7 @@ struct pm8921_charger_platform_data {
 	unsigned int			warm_bat_chg_current;
 	unsigned int			cool_bat_voltage;
 	unsigned int			warm_bat_voltage;
+	int				hysteresis_temp;
 	unsigned int			(*get_batt_capacity_percent) (void);
 	int64_t				batt_id_min;
 	int64_t				batt_id_max;
@@ -271,6 +272,7 @@ struct pm8921_charger_platform_data {
 	int nonstanard_mhl_chg_current;
 	/* OPPO 2012-08-13 chendx Add end */
 	bool				disable_chg_rmvl_wrkarnd;
+	bool				enable_tcxo_warmup_delay;
 };
 
 enum pm8921_charger_source {

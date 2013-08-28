@@ -285,7 +285,7 @@ static struct msm_bus_vectors cam_video_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 600000000,
+		.ab  = 800000000,
 		.ib  = 2656000000UL,
 	},
 	{
@@ -327,7 +327,7 @@ static struct msm_bus_vectors cam_zsl_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 600000000,
+		.ab  = 800000000,
 		.ib  = 2656000000UL,
 	},
 	{
@@ -339,7 +339,7 @@ static struct msm_bus_vectors cam_zsl_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_JPEG_ENC,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 540000000,
+		.ab  = 0,
 		.ib  = 1350000000,
 	},
 };
@@ -348,8 +348,8 @@ static struct msm_bus_vectors cam_video_ls_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 348192000,
-		.ib  = 617103360,
+		.ab  = 800000000,
+		.ib  = 3522000000UL,
 	},
 	{
 		.src = MSM_BUS_MASTER_VPE,
@@ -360,7 +360,7 @@ static struct msm_bus_vectors cam_video_ls_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_JPEG_ENC,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 540000000,
+		.ab  = 0,
 		.ib  = 1350000000,
 	},
 };
@@ -663,7 +663,7 @@ static struct msm_camera_csi_lane_params mt9m114_csi_lane_params = {
 };
 
 static struct msm_camera_sensor_platform_info sensor_board_info_mt9m114 = {
-	.mount_angle = 90,
+	.mount_angle = 270,
 	.cam_vreg = msm_8930_cam_vreg,
 	.num_vreg = ARRAY_SIZE(msm_8930_cam_vreg),
 	.gpio_conf = &msm_8930_front_cam_gpio_conf,

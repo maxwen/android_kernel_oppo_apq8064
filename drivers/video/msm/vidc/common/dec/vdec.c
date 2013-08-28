@@ -312,6 +312,12 @@ static void vid_dec_output_frame_done(struct video_client_ctx *client_ctx,
 		    vcd_frame_data->data_len;
 		vdec_msg->vdec_msg_info.msgdata.output_frame.flags =
 		    vcd_frame_data->flags;
+		/* metadata offset in output buffer for non-secure mode */
+		vdec_msg->vdec_msg_info.msgdata.output_frame.metadata_len =
+			(size_t)vcd_frame_data->metadata_len;
+		/* metadata offset in output buffer for non-secure mode */
+		vdec_msg->vdec_msg_info.msgdata.output_frame.metadata_offset =
+			(size_t)vcd_frame_data->metadata_offset;
 		/* Timestamp pass-through from input frame */
 		vdec_msg->vdec_msg_info.msgdata.output_frame.time_stamp =
 		    vcd_frame_data->time_stamp;
@@ -381,13 +387,11 @@ static void vid_dec_output_frame_done(struct video_client_ctx *client_ctx,
 				pmem_fd, kernel_vaddr, buffer_index,
 				&buff_handle);
 		if (ion_flag == ION_FLAG_CACHED && buff_handle) {
-			DBG("%s: Cache invalidate: vaddr (%p), "\
-				"size %u\n", __func__,
-				(void *)kernel_vaddr,
+			DBG("%s: Cache invalidate: size %u", __func__,
 				vcd_frame_data->alloc_len);
 			msm_ion_do_cache_op(client_ctx->user_ion_client,
 					buff_handle,
-					(unsigned long *) kernel_vaddr,
+					(unsigned long *) NULL,
 					(unsigned long)vcd_frame_data->\
 					alloc_len,
 					ION_IOC_INV_CACHES);
@@ -674,24 +678,49 @@ static u32 vid_dec_set_frame_resolution(struct video_client_ctx *client_ctx,
 		return true;
 }
 
+static u32 vid_dec_get_curr_perf_level(struct video_client_ctx *client_ctx,
+	u32 *perf_level)
+{
+	struct vcd_property_hdr vcd_property_hdr;
+	u32 vcd_status = VCD_ERR_FAIL;
+	u32 perf_lvl = 0;
+
+	if (!client_ctx)
+		return false;
+
+	vcd_property_hdr.prop_id = VCD_I_GET_CURR_PERF_LEVEL;
+	vcd_property_hdr.sz = sizeof(u32);
+	vcd_status = vcd_get_property(client_ctx->vcd_handle,
+				      &vcd_property_hdr, &perf_lvl);
+	if (vcd_status) {
+		ERR("VCD_I_GET_PERF_LEVEL failed!!");
+		*perf_level = 0;
+		return false;
+	} else {
+		*perf_level = perf_lvl;
+		return true;
+	}
+}
+
 static u32 vid_dec_set_turbo_clk(struct video_client_ctx *client_ctx)
 {
 	struct vcd_property_hdr vcd_property_hdr;
 	u32 vcd_status = VCD_ERR_FAIL;
-	u32 dummy = 0;
+	struct vcd_property_perf_level perf_level;
+	perf_level.level = VCD_PERF_LEVEL_TURBO;
 
 	if (!client_ctx)
 		return false;
-	vcd_property_hdr.prop_id = VCD_I_SET_TURBO_CLK;
-	vcd_property_hdr.sz = sizeof(struct vcd_property_frame_size);
-
+	vcd_property_hdr.prop_id = VCD_REQ_PERF_LEVEL;
+	vcd_property_hdr.sz = sizeof(struct vcd_property_perf_level);
 	vcd_status = vcd_set_property(client_ctx->vcd_handle,
-				      &vcd_property_hdr, &dummy);
-
-	if (vcd_status)
+				      &vcd_property_hdr, &perf_level);
+	if (vcd_status) {
+		ERR("%s: set turbo perf_level failed", __func__);
 		return false;
-	else
+	} else {
 		return true;
+	}
 }
 
 static u32 vid_dec_get_frame_resolution(struct video_client_ctx *client_ctx,
@@ -1596,6 +1625,8 @@ static u32 vid_dec_start_stop(struct video_client_ctx *client_ctx, u32 start)
 				return false;
 			}
 		}
+
+		client_ctx->stop_called = false;
 	} else {
 		DBG("%s(): Calling vcd_stop()", __func__);
 		mutex_lock(&vid_dec_device_p->lock);
@@ -1665,7 +1696,7 @@ static u32 vid_dec_decode_frame(struct video_client_ctx *client_ctx,
 			if (ion_flag == ION_FLAG_CACHED && buff_handle) {
 				msm_ion_do_cache_op(client_ctx->user_ion_client,
 				buff_handle,
-				(unsigned long *)kernel_vaddr,
+				(unsigned long *) NULL,
 				(unsigned long) vcd_input_buffer.data_len,
 				ION_IOC_CLEAN_CACHES);
 			}
@@ -2047,6 +2078,7 @@ static long vid_dec_ioctl(struct file *file,
 	}
 	case VDEC_IOCTL_CMD_PAUSE:
 	{
+		DBG("VDEC_IOCTL_CMD_PAUSE\n");
 		result = vid_dec_pause_resume(client_ctx, true);
 		if (!result)
 			return -EIO;
@@ -2098,8 +2130,27 @@ static long vid_dec_ioctl(struct file *file,
 		}
 		break;
 	}
+	case VDEC_IOCTL_GET_PERF_LEVEL:
+	{
+		u32 curr_perf_level;
+		if (copy_from_user(&vdec_msg, arg, sizeof(vdec_msg)))
+			return -EFAULT;
+		result = vid_dec_get_curr_perf_level(client_ctx,
+			&curr_perf_level);
+		if (!result) {
+			ERR("get_curr_perf_level failed!!");
+			return -EIO;
+		}
+		DBG("VDEC_IOCTL_GET_PERF_LEVEL %u\n",
+			curr_perf_level);
+		if (copy_to_user(vdec_msg.out,
+			&curr_perf_level, sizeof(u32)))
+			return -EFAULT;
+		break;
+	}
 	case VDEC_IOCTL_SET_PERF_CLK:
 	{
+		DBG("VDEC_IOCTL_SET_PERF_CLK\n");
 		vid_dec_set_turbo_clk(client_ctx);
 		break;
 	}
@@ -2184,7 +2235,7 @@ static long vid_dec_ioctl(struct file *file,
 			client_ctx->seq_hdr_ion_handle = ion_import_dma_buf(
 				client_ctx->user_ion_client,
 				seq_header.pmem_fd);
-			if (!client_ctx->seq_hdr_ion_handle) {
+			if (IS_ERR_OR_NULL(client_ctx->seq_hdr_ion_handle)) {
 				ERR("%s(): get_ION_handle failed\n", __func__);
 				return false;
 			}
@@ -2201,7 +2252,7 @@ static long vid_dec_ioctl(struct file *file,
 			ker_vaddr = (unsigned long) ion_map_kernel(
 				client_ctx->user_ion_client,
 				client_ctx->seq_hdr_ion_handle);
-			if (!ker_vaddr) {
+			if (IS_ERR_OR_NULL((void *)ker_vaddr)) {
 				ERR("%s():get_ION_kernel virtual addr fail\n",
 							 __func__);
 				ion_free(client_ctx->user_ion_client,
@@ -2244,7 +2295,7 @@ static long vid_dec_ioctl(struct file *file,
 			return -EFAULT;
 		}
 		if (vcd_get_ion_status()) {
-			if (client_ctx->seq_hdr_ion_handle) {
+			if (!IS_ERR_OR_NULL(client_ctx->seq_hdr_ion_handle)) {
 				ion_unmap_kernel(client_ctx->user_ion_client,
 						client_ctx->seq_hdr_ion_handle);
 				ion_free(client_ctx->user_ion_client,
@@ -2459,6 +2510,7 @@ static long vid_dec_ioctl(struct file *file,
 	}
 	case VDEC_IOCTL_SET_IDR_ONLY_DECODING:
 	{
+		DBG("VDEC_IOCTL_SET_IDR_ONLY_DECODING\n");
 		result = vid_dec_set_idr_only_decoding(client_ctx);
 		if (!result)
 			return -EIO;
@@ -2466,6 +2518,7 @@ static long vid_dec_ioctl(struct file *file,
 	}
 	case VDEC_IOCTL_SET_CONT_ON_RECONFIG:
 	{
+		DBG("VDEC_IOCTL_SET_CONT_ON_RECONFIG\n");
 		result = vid_dec_set_cont_on_reconfig(client_ctx);
 		if (!result)
 			return -EIO;

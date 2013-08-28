@@ -52,6 +52,7 @@ struct csvt_ctrl_dev {
 
 static const struct usb_device_id id_table[] = {
 	{ USB_DEVICE_AND_INTERFACE_INFO(0x05c6 , 0x904c, 0xff, 0xfe, 0xff)},
+	{ USB_DEVICE_AND_INTERFACE_INFO(0x05c6 , 0x9075, 0xff, 0xfe, 0xff)},
 	{}, /* terminating entry */
 };
 MODULE_DEVICE_TABLE(usb, id_table);
@@ -249,15 +250,15 @@ static int csvt_ctrl_tiocmset(struct tty_struct *tty,
 	dev_dbg(&port->dev, "%s\n", __func__);
 
 	mutex_lock(&dev->dev_lock);
-	if (set & CSVT_CTRL_DTR)
-		dev->cbits_tomdm |= TIOCM_DTR;
-	if (set & CSVT_CTRL_RTS)
-		dev->cbits_tomdm |= TIOCM_RTS;
+	if (set & TIOCM_DTR)
+		dev->cbits_tomdm |= CSVT_CTRL_DTR;
+	if (set & TIOCM_RTS)
+		dev->cbits_tomdm |= CSVT_CTRL_RTS;
 
-	if (clear & CSVT_CTRL_DTR)
-		dev->cbits_tomdm &= ~TIOCM_DTR;
-	if (clear & CSVT_CTRL_RTS)
-		dev->cbits_tomdm &= ~TIOCM_RTS;
+	if (clear & TIOCM_DTR)
+		dev->cbits_tomdm &= ~CSVT_CTRL_DTR;
+	if (clear & TIOCM_RTS)
+		dev->cbits_tomdm &= ~CSVT_CTRL_RTS;
 	mutex_unlock(&dev->dev_lock);
 
 	return csvt_ctrl_write_cmd(dev, port);

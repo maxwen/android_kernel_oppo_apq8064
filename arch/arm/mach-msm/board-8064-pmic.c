@@ -115,7 +115,6 @@ struct pm8xxx_mpp_init {
 /* Initial PM8921 GPIO configurations */
 static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
 	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* HDMI Mux Selector */
-	PM8921_GPIO_OUTPUT(23, 0, HIGH),	/* touchscreen power FET */
 /* OPPO 2012-11-30 huyu modify for boot LOGO bluescreen*/
 #ifndef CONFIG_VENDOR_EDIT	
 	PM8921_GPIO_OUTPUT_BUFCONF(25, 0, LOW, CMOS), /* DISP_RESET_N */
@@ -147,10 +146,13 @@ static struct pm8xxx_gpio_init pm8921_cdp_kp_gpios[] __initdata = {
 	PM8921_GPIO_INPUT(17, PM_GPIO_PULL_UP_1P5),	/* SD_WP */
 };
 
+static struct pm8xxx_gpio_init pm8921_mpq8064_hrd_gpios[] __initdata = {
+	PM8921_GPIO_OUTPUT(37, 0, LOW),	/* MUX1_SEL */
+};
+
 /* Initial PM8917 GPIO configurations */
 static struct pm8xxx_gpio_init pm8917_gpios[] __initdata = {
 	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* HDMI Mux Selector */
-	PM8921_GPIO_OUTPUT(23, 0, HIGH),	/* touchscreen power FET */
 	PM8921_GPIO_OUTPUT_BUFCONF(25, 0, LOW, CMOS), /* DISP_RESET_N */
 	PM8921_GPIO_OUTPUT(26, 1, HIGH), /* Backlight: on */
 	PM8921_GPIO_OUTPUT_BUFCONF(36, 1, LOW, OPEN_DRAIN),
@@ -170,6 +172,10 @@ static struct pm8xxx_gpio_init pm8917_cdp_kp_gpios[] __initdata = {
 	PM8921_GPIO_INPUT(27, PM_GPIO_PULL_UP_30),
 	PM8921_GPIO_INPUT(8, PM_GPIO_PULL_UP_30),
 	PM8921_GPIO_INPUT(17, PM_GPIO_PULL_UP_1P5),	/* SD_WP */
+};
+
+static struct pm8xxx_gpio_init pm8921_8917_cdp_ts_gpios[] __initdata = {
+	PM8921_GPIO_OUTPUT(23, 0, HIGH),	/* touchscreen power FET */
 };
 
 static struct pm8xxx_gpio_init pm8921_mpq_gpios[] __initdata = {
@@ -192,8 +198,7 @@ static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
 
 static struct pm8xxx_gpio_init pm8921_sglte2_gpios[] __initdata = {
 	PM8921_GPIO_OUTPUT(23, 1, HIGH),		/* PM2QSC_SOFT_RESET */
-	PM8921_GPIO_OUTPUT(21, 0, HIGH),		/* PM2QSC_KEYPADPWR */
-
+	PM8921_GPIO_OUTPUT(21, 1, HIGH),		/* PM2QSC_KEYPADPWR */
 };
 
 void __init apq8064_configure_gpios(struct pm8xxx_gpio_init *data, int len)
@@ -224,6 +229,9 @@ void __init apq8064_pm8xxx_gpio_mpp_init(void)
 		else
 			apq8064_configure_gpios(pm8917_cdp_kp_gpios,
 					ARRAY_SIZE(pm8917_cdp_kp_gpios));
+
+		apq8064_configure_gpios(pm8921_8917_cdp_ts_gpios,
+				ARRAY_SIZE(pm8921_8917_cdp_ts_gpios));
 	}
 
 	if (machine_is_apq8064_mtp()) {
@@ -240,6 +248,10 @@ void __init apq8064_pm8xxx_gpio_mpp_init(void)
 	    || machine_is_mpq8064_dtv())
 		apq8064_configure_gpios(pm8921_mpq_gpios,
 					ARRAY_SIZE(pm8921_mpq_gpios));
+
+	if (machine_is_mpq8064_hrd())
+		apq8064_configure_gpios(pm8921_mpq8064_hrd_gpios,
+					ARRAY_SIZE(pm8921_mpq8064_hrd_gpios));
 
 	for (i = 0; i < ARRAY_SIZE(pm8xxx_mpps); i++) {
 		rc = pm8xxx_mpp_config(pm8xxx_mpps[i].mpp,
@@ -261,9 +273,7 @@ static struct pm8xxx_misc_platform_data apq8064_pm8921_misc_pdata = {
 	.priority		= 0,
 };
 
-/* OPPO 2013-04-10 wangjw change current from 4 to 14ma */
-#define PM8921_LC_LED_MAX_CURRENT	14	/* I = 4mA */
-/* OPPO 2013-04-10 wangjw change end */
+#define PM8921_LC_LED_MAX_CURRENT	12	/* I = 12mA */
 #define PM8921_LC_LED_LOW_CURRENT	1	/* I = 1mA */
 #define PM8XXX_LED_PWM_PERIOD		1000
 #define PM8XXX_LED_PWM_DUTY_MS		20
@@ -491,7 +501,6 @@ apq8064_pm8921_chg_pdata __devinitdata = {
 			.rconn_mohm 		= 28,
 #endif
 /* OPPO 2012-11-07 chendx Modify end */
-
 };
 
 static struct pm8xxx_ccadc_platform_data
