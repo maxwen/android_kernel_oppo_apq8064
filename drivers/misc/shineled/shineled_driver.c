@@ -821,7 +821,66 @@ static void lcds_set_brightness(struct led_classdev *led_cdev,
 		SN3193_SetBrightness(BLUE_SLED, value);
 		color_B = value;
 	}
+}
 
+void sled_charging_internal(int value)
+{
+	u8 t123, t4;
+
+	D("%s:\n", __func__);
+	if (value >= 100) {
+
+		color_G = 255;
+		color_B = 0;
+		color_R = 0;
+
+		SN3193_SetBrightness(RED_SLED, color_R);
+		SN3193_SetBrightness(GREEN_SLED, color_G);
+		SN3193_SetBrightness(BLUE_SLED, color_B);
+
+		SN3193_TurnOnRGB_sled();	//turn on the RGB color
+
+		SN3193_enable_sled(1);
+		SN3193_config_feature_sled(0);
+		SN3193_workmod_sled(0);	//select the RGB mode, 
+		SN3193_setCurrent_sled(0x01);
+		SN3193_upData_sled();	//turn on the light
+	} else {
+		color_B = 0;
+		color_G = 255;
+		color_R = 255;
+
+		SN3193_SetBrightness(RED_SLED, color_R);
+		SN3193_SetBrightness(GREEN_SLED, color_G);
+		SN3193_SetBrightness(BLUE_SLED, color_B);
+
+		SN3193_TurnOnRGB_sled();	//turn on the RGB color
+
+		SN3193_enable_sled(1);
+		SN3193_config_feature_sled(0);
+		SN3193_workmod_sled(1);	//select the RGB mode, 
+		SN3193_setCurrent_sled(0x01);
+
+		t123 = get_register_t(428);
+		t4 = get_register_t(2764) + 1;
+
+		SN3193_SetBreathTime_sled(1, 0, t123, t123 + 1, t123, t4);
+		SN3193_SetBreathTime_sled(2, 0, t123, t123 + 1, t123, t4);
+		SN3193_SetBreathTime_sled(3, 0, t123, t123 + 1, t123, t4);
+
+		SN3193_TimeUpdate_sled();	//start breath  
+		SN3193_upData_sled();	//turn on the light
+	}
+}
+
+void sled_turn_off(void){
+	D("%s:\n", __func__);
+	color_R = 0;
+	color_G = 0;
+	color_B = 0;
+
+	SN3193_TurnOffOut_sled();
+	SN3193_enable_sled(0);
 }
 
 static const struct file_operations SN3193_fops = {
