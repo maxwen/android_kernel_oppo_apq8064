@@ -161,14 +161,7 @@ static struct kobject *modeminfo_kobj;
 /* OPPO 2012-09-12 Van Modify begin for factory mode*/
 static struct kobject *systeminfo_kobj;
 
-enum{
-	MSM_BOOT_MODE__NORMAL,
-	MSM_BOOT_MODE__RECOVERY,
-	MSM_BOOT_MODE__FACTORY,
-	MSM_BOOT_MODE__CHARGE,
-};
-
-static int ftm_mode = 0;
+static int ftm_mode = MSM_BOOT_MODE__NORMAL;
 
 /* OPPO 2012-11-05 Van Modify begin for add interface start reason and boot_mode begin */
 char pwron_event[16];
