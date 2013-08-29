@@ -32,6 +32,7 @@
 #include <linux/ratelimit.h>
 
 #include <mach/msm_xo.h>
+#include <mach/board.h>
 /* OPPO 2012-08-10 chendx Modify begin for 12025 charge*/
 #ifndef CONFIG_VENDOR_EDIT
 #include <mach/msm_hsusb.h>
@@ -196,14 +197,6 @@ static int logo_level  = 1;
    } while (0) 
 
 /* offmode charging led */
-extern int get_boot_mode(void);
-enum{
-	MSM_BOOT_MODE__NORMAL,
-	MSM_BOOT_MODE__RECOVERY,
-	MSM_BOOT_MODE__FACTORY,
-	MSM_BOOT_MODE__CHARGE,
-};
-
 extern void sled_turn_off(void);
 extern void sled_charging_internal(int value);
 

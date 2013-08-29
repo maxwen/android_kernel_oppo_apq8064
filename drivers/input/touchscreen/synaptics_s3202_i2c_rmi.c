@@ -50,6 +50,7 @@
 #include <asm/uaccess.h>
 #include <linux/syscalls.h>
 #include <linux/wakelock.h>
+#include <mach/board.h>
 
 /******************* tp function switch **************************/
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_ENABLE_FW_FLASH
@@ -248,13 +249,6 @@ struct synaptics_ts_data {
 #endif
 };
 
-extern int get_boot_mode(void);
-enum{
-	MSM_BOOT_MODE__NORMAL,
-	MSM_BOOT_MODE__RECOVERY,
-	MSM_BOOT_MODE__FACTORY,
-	MSM_BOOT_MODE__CHARGE,
-};
 static struct synaptics_ts_data   *syna_ts_data;
 static DEFINE_SEMAPHORE(synaptics_sem);
 
