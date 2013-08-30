@@ -6324,13 +6324,9 @@ static int msm_axi_subdev_s_crystal_freq(struct v4l2_subdev *sd,
 	int round_rate;
 	struct axi_ctrl_t *axi_ctrl = v4l2_get_subdevdata(sd);
 	if (axi_ctrl->share_ctrl->dual_enabled) {
-		CDBG("%s Dual camera Enabled hence returning "\
+		pr_info("%s axi_ctrl->share_ctrl->dual_enabled hence returning "\
 			"without clock change\n", __func__);
-/* OPPO 2013-03-07 kangjian delete begin for snap */		
-#if 0
 		return rc;
-#endif
-/* OPPO 2013-03-07 kangjian delete end for snap */
 	}
 	round_rate = clk_round_rate(axi_ctrl->vfe_clk[0], freq);
 	if (rc < 0) {
@@ -6437,7 +6433,7 @@ int msm_axi_subdev_init(struct v4l2_subdev *sd,
 	msm_camio_bus_scale_cfg(
 		mctl->sdata->pdata->cam_bus_scale_table, S_INIT);
 
-	CDBG("%s: axi_ctrl->share_ctrl->dual_enabled ? = %d\n", __func__,
+	pr_info("%s: axi_ctrl->share_ctrl->dual_enabled ? = %d\n", __func__,
 			axi_ctrl->share_ctrl->dual_enabled);
 	if (axi_ctrl->share_ctrl->dual_enabled){
 		pr_info("%s: Scaling bus config for dual bus vectors\n",
@@ -6499,6 +6495,9 @@ int msm_vfe_subdev_init(struct v4l2_subdev *sd)
 		vfe32_ctrl->vfe_sof_count_enable = false;
 	else
 		vfe32_ctrl->vfe_sof_count_enable = true;
+
+	pr_info("%s: vfe32_ctrl->share_ctrl->dual_enabled ? = %d\n", __func__,
+			vfe32_ctrl->share_ctrl->dual_enabled);
 
 	vfe32_ctrl->update_abcc = false;
 	vfe32_ctrl->hfr_mode = HFR_MODE_OFF;
@@ -6576,6 +6575,7 @@ int msm_axi_set_low_power_mode(struct v4l2_subdev *sd, void *arg)
 		axi_ctrl->share_ctrl->dual_enabled = 0;
 	else
 		axi_ctrl->share_ctrl->dual_enabled = 1;
+	pr_info("%s: dual_enabled=%d\n", __func__, axi_ctrl->share_ctrl->dual_enabled);
 	return rc;
 }
 
@@ -6822,13 +6822,7 @@ void axi_start(struct msm_cam_media_controller *pmctl,
 		break;
 	case AXI_CMD_CAPTURE:
 	case AXI_CMD_RAW_CAPTURE:
-/* OPPO 2013-03-07 kangjian Modify begin for snap */		
-#if 0
 		if (!axi_ctrl->share_ctrl->dual_enabled)
-#else
-        if (axi_ctrl->share_ctrl->dual_enabled)
-#endif
-/* OPPO 2013-03-07 kangjian Modify end for snap */
 			msm_camio_bus_scale_cfg(
 			pmctl->sdata->pdata->cam_bus_scale_table, S_CAPTURE);
 		break;
@@ -6842,13 +6836,7 @@ void axi_start(struct msm_cam_media_controller *pmctl,
 			msm_camio_bus_scale_cfg(
 				pmctl->sdata->pdata->cam_bus_scale_table,
 				S_LOW_POWER);
-/* OPPO 2013-03-07 kangjian Modify begin for zsl */
-#if 0
 		else if (!axi_ctrl->share_ctrl->dual_enabled)
-#else 
-        else if (axi_ctrl->share_ctrl->dual_enabled)
-#endif
-/* OPPO 2013-03-07 kangjian Modify end for zsl */
 			msm_camio_bus_scale_cfg(
 				pmctl->sdata->pdata->cam_bus_scale_table,
 				S_ZSL);

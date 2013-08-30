@@ -1013,20 +1013,12 @@ static int msm_vpe_subdev_close(struct v4l2_subdev *sd,
 	}
 
 	D("%s E ", __func__);
-	if (frame_info) {		
-		struct msm_cam_media_controller *p_mctl = v4l2_get_subdev_hostdata(&vpe_ctrl->subdev);
-		pr_err("%s release frame\n", __func__);
-		if (p_mctl == NULL || p_mctl->client == NULL) {/*OPPO*/
-			pr_err("%s No mctl found\n", __func__);
-		} else {
-			D("%s Unmap the pending item from the queue ", __func__);
-			msm_mctl_unmap_user_frame(&frame_info->src_frame,
-				frame_info->p_mctl->client, mctl->domain_num);
-			msm_mctl_unmap_user_frame(&frame_info->dest_frame,
-				frame_info->p_mctl->client, mctl->domain_num);
-		}
-		kfree(frame_info);/*OPPO*/
-		vpe_ctrl->pp_frame_info = NULL;
+	if (frame_info) {
+		D("%s Unmap the pending item from the queue ", __func__);
+		msm_mctl_unmap_user_frame(&frame_info->src_frame,
+			frame_info->p_mctl->client, mctl->domain_num);
+		msm_mctl_unmap_user_frame(&frame_info->dest_frame,
+			frame_info->p_mctl->client, mctl->domain_num);
 	}
 	vpe_ctrl->pp_frame_info = NULL;
 	/* Drain the payload queue. */
