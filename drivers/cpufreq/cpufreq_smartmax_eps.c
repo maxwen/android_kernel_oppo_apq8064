@@ -1178,8 +1178,6 @@ static int cpufreq_smartmax_boost_task(void *data) {
 	return 0;
 }
 
-#ifdef CONFIG_INPUT_MEDIATOR
-
 static void smartmax_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value) {
 	if (touch_poke && type == EV_SYN && code == SYN_REPORT) {
@@ -1195,26 +1193,13 @@ static void smartmax_input_event(struct input_handle *handle, unsigned int type,
 	}
 }
 
+#ifdef CONFIG_INPUT_MEDIATOR
+
 static struct input_mediator_handler smartmax_input_mediator_handler = {
 	.event = smartmax_input_event,
 	};
 
 #else
-
-static void dbs_input_event(struct input_handle *handle, unsigned int type,
-		unsigned int code, int value) {
-	if (touch_poke && type == EV_SYN && code == SYN_REPORT) {
-		// no need to bother if currently a boost is running anyway
-		if (boost_task_alive && boost_running)
-			return;
-
-		if (boost_task_alive) {
-			cur_boost_freq = touch_poke_freq;
-			cur_boost_duration = input_boost_duration;
-			wake_up_process(boost_task);
-		}
-	}
-}
 
 static int dbs_input_connect(struct input_handler *handler,
 		struct input_dev *dev, const struct input_device_id *id) {
@@ -1272,7 +1257,7 @@ static const struct input_device_id dbs_ids[] = {
 };
 
 static struct input_handler dbs_input_handler = { 
-	.event = dbs_input_event,
+	.event = smartmax_input_event,
 	.connect = dbs_input_connect, 
 	.disconnect = dbs_input_disconnect,
 	.name = "cpufreq_smartmax_eps", 

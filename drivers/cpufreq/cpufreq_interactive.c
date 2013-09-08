@@ -97,13 +97,6 @@ static unsigned long above_hispeed_delay_val;
 
 static int input_boost_val;
 
-struct cpufreq_interactive_inputopen {
-	struct input_handle *handle;
-	struct work_struct inputopen_work;
-};
-
-static struct cpufreq_interactive_inputopen inputopen;
-
 /*
  * Non-zero means longer-term speed boost active.
  */
@@ -527,17 +520,13 @@ static void cpufreq_interactive_input_event(struct input_handle *handle,
 	}
 }
 
-static void cpufreq_interactive_input_open(struct work_struct *w)
-{
-	struct cpufreq_interactive_inputopen *io =
-		container_of(w, struct cpufreq_interactive_inputopen,
-			     inputopen_work);
-	int error;
+#ifdef CONFIG_INPUT_MEDIATOR
 
-	error = input_open_device(io->handle);
-	if (error)
-		input_unregister_handle(io->handle);
-}
+static struct input_mediator_handler interactive_input_mediator_handler = {
+	.event = cpufreq_interactive_input_event,
+	};
+
+#else
 
 static int cpufreq_interactive_input_connect(struct input_handler *handler,
 					     struct input_dev *dev,
@@ -557,12 +546,16 @@ static int cpufreq_interactive_input_connect(struct input_handler *handler,
 
 	error = input_register_handle(handle);
 	if (error)
-		goto err;
+		goto err2;
 
-	inputopen.handle = handle;
-	queue_work(down_wq, &inputopen.inputopen_work);
+	error = input_open_device(io->handle);
+	if (error)
+		goto err1;
+
 	return 0;
-err:
+err1:
+	input_unregister_handle(handle);
+err2:
 	kfree(handle);
 	return error;
 }
@@ -600,6 +593,8 @@ static struct input_handler cpufreq_interactive_input_handler = {
 	.name           = "cpufreq_interactive",
 	.id_table       = cpufreq_interactive_ids,
 };
+
+#endif
 
 static ssize_t show_hispeed_freq(struct kobject *kobj,
 				 struct attribute *attr, char *buf)
@@ -851,11 +846,14 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			return rc;
 		}
 		
+#ifdef CONFIG_INPUT_MEDIATOR
+		input_register_mediator_secondary(&interactive_input_mediator_handler);
+#else
 		rc = input_register_handler(&cpufreq_interactive_input_handler);
 		if (rc)
 			pr_warn("%s: failed to register input handler\n",
 				__func__);
-
+#endif
 		mutex_unlock(&gov_lock);
 		break;
 
@@ -883,7 +881,11 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			return 0;
 		}
 		
+#ifdef CONFIG_INPUT_MEDIATOR
+		input_unregister_mediator_secondary(&interactive_input_mediator_handler);
+#else
 		input_unregister_handler(&cpufreq_interactive_input_handler);
+#endif
 		sysfs_remove_group(cpufreq_global_kobject,
 				&interactive_attr_group);
 
@@ -967,7 +969,6 @@ static int __init cpufreq_interactive_init(void)
 	mutex_init(&gov_lock);
 
 	idle_notifier_register(&cpufreq_interactive_idle_nb);
-	INIT_WORK(&inputopen.inputopen_work, cpufreq_interactive_input_open);
 	return cpufreq_register_governor(&cpufreq_gov_interactive);
 
 err_freeuptask:
