@@ -1181,7 +1181,7 @@ static int cpufreq_smartmax_boost_task(void *data) {
 
 static void smartmax_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value) {
-	if (touch_poke && type == EV_SYN && code == SYN_REPORT) {
+	if (!is_suspended && touch_poke && type == EV_SYN && code == SYN_REPORT) {
 		// no need to bother if currently a boost is running anyway
 		if (boost_task_alive && boost_running)
 			return;
