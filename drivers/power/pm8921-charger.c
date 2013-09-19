@@ -199,6 +199,7 @@ static int logo_level  = 1;
 /* offmode charging led */
 extern void sled_turn_off(void);
 extern void sled_charging_internal(int value);
+static bool led_started = false;
 
 #endif /*CONFIG_VENDOR_EDIT*/
 /* OPPO 2012-08-22 chendx Add end */
@@ -3575,6 +3576,7 @@ static void handle_usb_insertion_removal(struct pm8921_chg_chip *chip)
 		/* offmode charging led */
 		if (MSM_BOOT_MODE__CHARGE == get_boot_mode()){
 			sled_turn_off();
+			led_started = false;
 		}
 #endif
 	
@@ -5755,17 +5757,21 @@ static void update_heartbeat(struct work_struct *work)
 		print_pm8921(DEBUG_ERROR,"Charge info,Charger voltage=%dmv,chg_current=%dmA,Batt health=%s\n",
 					chip->charger_voltage,chip->charge_current,batt_health[chip->batt_health]);
 		soc_backup = chip->report_calib_soc ;
-
-		/* offmode charging led */
-		if (MSM_BOOT_MODE__CHARGE == get_boot_mode()){
-			sled_charging_internal(chip->report_calib_soc);
-		}
 	}
 	
 	/* check is battery connect when charger plugin */
 	pm8921_check_battery_connect(chip);
 	
 	if (is_usb_chg_plugged_in(chip)){
+
+		/* offmode charging led */
+		if (MSM_BOOT_MODE__CHARGE == get_boot_mode()){
+			if (!led_started){
+				sled_charging_internal(chip->report_calib_soc);
+				led_started = true;
+			}
+		}
+
 		/*charge eoc with not begin with fastchged*/
 		if(boot_time == 0 && (!chip->charge_is_finished || chip->bms_notify.is_charging))
 			eoc_check_with_vbatt(chip);
