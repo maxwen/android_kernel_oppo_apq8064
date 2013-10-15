@@ -1682,7 +1682,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 						}
 
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
-						if (input_wakeup_active(ts))
+						if (input_wakeup_active(ts) && ts->s2w_enabled)
 						{
 							if (i == 0 && s2w_down_x != -2)
 							{
