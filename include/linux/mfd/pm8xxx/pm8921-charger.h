@@ -22,9 +22,11 @@ struct pm8xxx_charger_core_data {
 	unsigned int	vbat_channel;
 	unsigned int	batt_temp_channel;
 	unsigned int	batt_id_channel;
+#ifdef CONFIG_VENDOR_EDIT
 	/* OPPO 2012-08-06 chendx Add begin for chg voltage */
 	unsigned int	chg_voltage_channel;
 	/* OPPO 2012-08-06 chendx Add end */
+#endif
 };
 
 enum pm8921_chg_cold_thr {
@@ -59,6 +61,7 @@ enum pm8921_chg_led_src_config {
 	LED_SRC_BYPASS,
 };
 
+#ifdef CONFIG_VENDOR_EDIT
 /* OPPO 2012-08-07 chendx Add begin for BTM */
 typedef enum   
 {
@@ -117,6 +120,7 @@ typedef enum
 }chg_battery_status;
 
 /* OPPO 2012-08-15 chendx Add end */
+#endif
 
 /**
  * struct pm8921_charger_platform_data -
@@ -217,6 +221,7 @@ struct pm8921_charger_platform_data {
 	unsigned int			max_voltage;
 	unsigned int			min_voltage;
 	unsigned int			uvd_thresh_voltage;
+#ifdef CONFIG_VENDOR_EDIT
 /* OPPO 2012-08-07 chendx Add begin for BTM */
 	unsigned int			normal_resume_voltage_delta;
 	unsigned int			little_cold_bat_chg_current;
@@ -225,6 +230,7 @@ struct pm8921_charger_platform_data {
 	unsigned int			little_cold_bat_voltage;
 	unsigned int			normal_bat_voltage;
 /* OPPO 2012-08-07 chendx Add end */
+#endif
 	unsigned int			safe_current_ma;
 	unsigned int			alarm_low_mv;
 	unsigned int			alarm_high_mv;
@@ -264,13 +270,15 @@ struct pm8921_charger_platform_data {
 	int				btc_delay_ms;
 	int				btc_panic_if_cant_stop_chg;
 	int				stop_chg_upon_expiry;
-		/* OPPO 2012-08-06 chendx Add begin for rsense init */
+#ifdef CONFIG_VENDOR_EDIT
+/* OPPO 2012-08-06 chendx Add begin for rsense init */
 	unsigned int			r_sense;
-	/* OPPO 2012-08-06 chendx Add end */
-	/* OPPO 2012-08-13 chendx Add begin for reason */
+/* OPPO 2012-08-06 chendx Add end */
+/* OPPO 2012-08-13 chendx Add begin for reason */
     int mhl_chg_current;
 	int nonstanard_mhl_chg_current;
-	/* OPPO 2012-08-13 chendx Add end */
+/* OPPO 2012-08-13 chendx Add end */
+#endif
 	bool				disable_chg_rmvl_wrkarnd;
 	bool				enable_tcxo_warmup_delay;
 };
@@ -280,15 +288,19 @@ enum pm8921_charger_source {
 	PM8921_CHG_SRC_USB,
 	PM8921_CHG_SRC_DC,
 };
+
+#ifdef CONFIG_VENDOR_EDIT
 /* OPPO 2012-08-13 chendx Add begin for reason */
 int mhl_stanard_charge(void);
-
 /* OPPO 2012-08-13 chendx Add end */
+#endif
 
 #if defined(CONFIG_PM8921_CHARGER) || defined(CONFIG_PM8921_CHARGER_MODULE)
 void pm8921_charger_vbus_draw(unsigned int mA);
 int pm8921_charger_register_vbus_sn(void (*callback)(int));
 void pm8921_charger_unregister_vbus_sn(void (*callback)(int));
+
+#ifdef CONFIG_VENDOR_EDIT
 /**
  * pm8921_charger_enable -
  *
@@ -298,6 +310,7 @@ void pm8921_charger_unregister_vbus_sn(void (*callback)(int));
  * from the charging source
  */
 int pm8921_charger_enable(bool enable);
+#endif
 
 /**
  * pm8921_is_usb_chg_plugged_in - is usb plugged in
