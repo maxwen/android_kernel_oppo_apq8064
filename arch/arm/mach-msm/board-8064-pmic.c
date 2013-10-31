@@ -501,6 +501,7 @@ apq8064_pm8921_chg_pdata __devinitdata = {
 			.rconn_mohm 		= 28,
 #endif
 /* OPPO 2012-11-07 chendx Modify end */
+	.enable_tcxo_warmup_delay = true,
 };
 
 static struct pm8xxx_ccadc_platform_data
