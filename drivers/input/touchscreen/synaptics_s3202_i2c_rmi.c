@@ -1414,7 +1414,7 @@ static int synaptics_init_panel(struct synaptics_ts_data *ts)
 	ts->current_page = MASK_16BIT;
 	ts->need_hardware_reset = 0;
 
-	ret = synaptics_i2c_byte_write(ts, F01_CTRL_DEVICE_CONTROL, 0x84);
+	ret = synaptics_i2c_byte_write(ts, F01_CTRL_DEVICE_CONTROL, 0x80);
 
 	if (ret < 0)
 		dev_err(&ts->client->dev, "%s: i2c_smbus_write_byte_data failed\n", __func__);
@@ -1602,8 +1602,14 @@ static void synaptics_ts_work_func(struct work_struct *work)
 	{
 		if(buf_status[0] != 0)
 		{
+#if 0
 			print_ts(TS_WARNING, "TP interrupt register status unnormal , software reset !\n");
 			synaptics_software_reset(ts);
+#else
+			print_ts(TS_WARNING, "TP interrupt register status unnormal , hardware reset !\n");
+			synaptics_hardware_reset(ts);    
+#endif
+
 /* OPPO 2013-05-02 huanggd Add begin for double tap*/			
 			if (ts->is_tp_suspended){
 #if SUPPORT_DOUBLE_TAP			
@@ -1612,6 +1618,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
 				if (input_wakeup_active(ts)){
 #endif
+					print_ts(TS_WARNING, "reinit after hardware reset !\n");
 					synaptics_set_int_mask(ts, 0);
 #if SUPPORT_DOUBLE_TAP
 					synaptics_set_report_mode(ts, 0x04);
