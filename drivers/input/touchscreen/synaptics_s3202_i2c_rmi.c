@@ -1670,24 +1670,6 @@ static void synaptics_ts_work_func(struct work_struct *work)
 
 						offset_correction(ts, &f0_x, &f0_y);
 
-						if (f0_y > ts->max[1] - ts->snap_top - ts->virtual_key_height)
-						{
-							int pressed_vkey = get_virtual_key_button(f0_x, f0_y);
-							if (pressed_vkey == TP_VKEY_NONE)
-							{
-								input_mt_sync(ts->input_dev);
-								print_ts(TS_TRACE, KERN_ERR"[%s]:finger(%d): (x,y)=(%4d,%4d), not in available area\n",
-										__func__, i, f0_x, f0_y);
-								continue;
-							}
-						}
-						//finger_pressed ++;
-						input_point_num++;
-						if (1 == input_point_num)
-						{
-							continue;
-						}
-
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
 						if (input_wakeup_active(ts) && ts->s2w_enabled)
 						{
@@ -1710,7 +1692,8 @@ static void synaptics_ts_work_func(struct work_struct *work)
 											// stroke2wake - any direction activates
 											if (synaptics_s2w_handle_move(ts, finger_x))
 											{
-												if (s2w_exec_power_press) {
+												if (s2w_exec_power_press)
+												{
 													simulate_power_press();
 													s2w_exec_power_press = false;
 													input_wakeup_event = true;
@@ -1728,7 +1711,8 @@ static void synaptics_ts_work_func(struct work_struct *work)
 												{
 													if (synaptics_s2w_handle_move(ts, finger_x))
 													{
-														if (s2w_exec_power_press) {
+														if (s2w_exec_power_press)
+														{
 															simulate_power_press();
 															s2w_exec_power_press = false;
 															input_wakeup_event = true;
@@ -1744,7 +1728,9 @@ static void synaptics_ts_work_func(struct work_struct *work)
 												{
 													if (synaptics_s2w_handle_move(ts, finger_x))
 													{
-														if (s2w_exec_power_press) {															simulate_power_press();
+														if (s2w_exec_power_press)
+														{
+															simulate_power_press();
 															s2w_exec_power_press = false;
 															input_wakeup_event = true;
 															goto work_func_end;
@@ -1766,11 +1752,25 @@ static void synaptics_ts_work_func(struct work_struct *work)
 								goto work_func_end;
 						}
 
-						// never report anything upstream if we are suspended
-						if (ts->is_tp_suspended)
-							goto work_func_end;
-
 #endif
+						if (f0_y > ts->max[1] - ts->snap_top - ts->virtual_key_height)
+						{
+							int pressed_vkey = get_virtual_key_button(f0_x, f0_y);
+							if (pressed_vkey == TP_VKEY_NONE)
+							{
+								input_mt_sync(ts->input_dev);
+								print_ts(TS_TRACE, KERN_ERR"[%s]:finger(%d): (x,y)=(%4d,%4d), not in available area\n",
+										__func__, i, f0_x, f0_y);
+								continue;
+							}
+						}
+						//finger_pressed ++;
+						input_point_num++;
+						if (1 == input_point_num)
+						{
+							continue;
+						}
+
 						input_report_abs(ts->input_dev, ABS_MT_POSITION_X, f0_x);
 						input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, f0_y);
 						input_report_abs(ts->input_dev, ABS_MT_PRESSURE, f0_z);
@@ -2659,6 +2659,14 @@ static int synaptics_ts_resume(struct i2c_client *client)
 /* OPPO 2013-05-02 huanggd Add end*/	
 		synaptics_set_int_mask(ts, 1);
 		up(&synaptics_sem);
+
+#ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W		
+		// else those are not reset cause we dont get
+		// a finger up event when using S2W
+		s2w_exec_power_press = true;
+		s2w_barrier_reached = false;
+		s2w_down_x = -1;
+#endif
 		return 0;
 	}
 
