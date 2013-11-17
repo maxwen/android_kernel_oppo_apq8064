@@ -1541,6 +1541,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 	uint8_t data_start_addr = ts->fn11_desc.data_base_addr & MASK_8BIT;
 	unsigned char double_tap = 0;
 	bool input_wakeup_event = false;
+	bool virtual_key_pressed = false;
 
 	//printk("[SYNAPTICS]%s enter.\n", __func__);
 	down(&synaptics_sem);
@@ -1763,10 +1764,13 @@ static void synaptics_ts_work_func(struct work_struct *work)
 										__func__, i, f0_x, f0_y);
 								continue;
 							}
+							virtual_key_pressed = true;
 						}
 						//finger_pressed ++;
 						input_point_num++;
-						if (1 == input_point_num)
+
+						// dont do that when pressing a virtual key!
+						if (!virtual_key_pressed && 1 == input_point_num)
 						{
 							continue;
 						}
