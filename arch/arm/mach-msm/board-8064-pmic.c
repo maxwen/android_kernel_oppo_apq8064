@@ -284,12 +284,23 @@ static struct pm8xxx_misc_platform_data apq8064_pm8921_misc_pdata = {
 #define PM8XXX_PWM_CHANNEL_NONE		-1
 
 static struct led_info pm8921_led_info[] = {
+#ifdef CONFIG_VENDOR_EDIT
 	[0] = {
 /* OPPO 2013-04-10 wangjw change node from "led:red" to "button-backlight" */
 		.name			= "button-backlight",
 /* OPPO 2013-04-10 wangjw change end */
 		.default_trigger	= "ac-online",
 	},
+#else
+	[0] = {
+		.name			= "led:red",
+		.default_trigger	= "battery-charging",
+	},
+	[1] = {
+		.name			= "led:green",
+		.default_trigger	= "battery-full",
+	},
+#endif
 };
 
 static struct led_platform_data pm8921_led_core_pdata = {
@@ -298,7 +309,7 @@ static struct led_platform_data pm8921_led_core_pdata = {
 };
 
 /* OPPO 2012-11-15 wangjw Delete begin for button back light */
-#if 0
+#ifndef CONFIG_VENDOR_EDIT
 static int pm8921_led0_pwm_duty_pcts[56] = {
 	1, 4, 8, 12, 16, 20, 24, 28, 32, 36,
 	40, 44, 46, 52, 56, 60, 64, 68, 72, 76,
@@ -330,11 +341,21 @@ static struct pm8xxx_led_config pm8921_led_configs[] = {
 		.pwm_channel = 5,
 		.pwm_period_us = PM8XXX_LED_PWM_PERIOD,
 /* OPPO 2012-11-15 wangjw Delete begin for button back light */
-#if 0
+#ifndef CONFIG_VENDOR_EDIT
 		.pwm_duty_cycles = &pm8921_led0_pwm_duty_cycles,
 #endif
 /* OPPO 2012-11-15 wangjw Delete end */
 	},
+#ifndef CONFIG_VENDOR_EDIT
+	[1] = {
+		.id = PM8XXX_ID_LED_1,
+		.mode = PM8XXX_LED_MODE_PWM1,
+		.max_current = PM8921_LC_LED_MAX_CURRENT,
+		.pwm_channel = 4,
+		.pwm_period_us = PM8XXX_LED_PWM_PERIOD,
+		.pwm_duty_cycles = &pm8921_led0_pwm_duty_cycles,
+	},
+#endif
 };
 
 static struct pm8xxx_led_platform_data apq8064_pm8921_leds_pdata = {
