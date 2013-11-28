@@ -487,6 +487,13 @@ config VENDOR_EDIT
 	bool "VENDOR_EDIT"
 	default y
 #OPPO 2013-02-19 zhenwxAdd end 
+
+config OPPO_FIND5
+	bool "Oppo Find5"
+
+config OPPO_N1
+	bool "Oppo N1"
+
 config MACH_HALIBUT
 	depends on ARCH_MSM7X01A
 	depends on MSM_STACKED_MEMORY
