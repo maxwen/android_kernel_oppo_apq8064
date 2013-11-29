@@ -299,8 +299,12 @@ static struct mmc_platform_data sdc3_data = {
 	.vreg_data	= &mmc_slot_vreg_data[SDCC3],
 	.wpswitch_gpio	= PM8921_GPIO_PM_TO_SYS(17),
 	.is_wpswitch_active_low = true,
+	/* OPPO 2013-07-24 liubin Delete for m9mo interrupt start */
+	#if 0
 	.status_gpio	= 26,
 	.status_irq	= MSM_GPIO_TO_INT(26),
+	#endif
+	/* OPPO 2013-07-24 liubin Delete end */
 	.irq_flags	= IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
 	.is_status_gpio_active_low = 1,
 	.xpc_cap	= 1,

@@ -216,6 +216,13 @@ int v4l2_event_subscribe(struct v4l2_fh *fh,
 	unsigned long flags;
 	unsigned i;
 
+#ifdef CONFIG_VENDOR_EDIT
+	/* OPPO 2013-11-15 liubin Add for avoid null point cause reboot start */
+	if (!fh || !sub)
+		return -EINVAL;
+	/* OPPO 2013-11-15 liubin Add end */
+#endif
+
 	if (sub->type == V4L2_EVENT_ALL)
 		return -EINVAL;
 

@@ -1491,6 +1491,14 @@ static int msm_close_server(struct file *fp)
 	mutex_lock(&g_server_dev.server_lock);
 	if (g_server_dev.use_count > 0)
 		g_server_dev.use_count--;
+/* OPPO 2013-11-15 liubin Add for avoid closing repeatly start */
+#ifdef CONFIG_VENDOR_EDIT
+	else {
+		mutex_unlock(&g_server_dev.server_lock);
+		return 0;
+	}
+#endif
+/* OPPO 2013-11-15 liubin Add end */
 	mutex_unlock(&g_server_dev.server_lock);
 
 	if (g_server_dev.use_count == 0) {
@@ -1827,6 +1835,29 @@ static void msm_cam_server_subdev_notify(struct v4l2_subdev *sd,
 		if (p_mctl && p_mctl->isp_notify && p_mctl->vfe_sdev)
 			rc = p_mctl->isp_notify(p_mctl,
 				p_mctl->vfe_sdev, notification, arg);
+		
+/* OPPO 2013-07-29 lanhe Add for m9m0 caf start */
+#ifdef CONFIG_M9MO
+		if(notification == NOTIFY_VFE_PIX_SOF_COUNT)
+		{
+			struct sensor_cfg_data cfgarg;
+			cfgarg.cfgtype = CFG_FRAME_NOTIFICATION;
+			if (p_mctl && p_mctl->sensor_sdev)
+			    v4l2_subdev_call(p_mctl->sensor_sdev, core, ioctl,
+				VIDIOC_MSM_SENSOR_CFG, &cfgarg);
+			
+		}
+		
+		if (p_mctl && p_mctl->vfe_output_mode == VFE_OUTPUTS_MAIN_AND_THUMB)
+		{
+			if (NOTIFY_VFE_MSG_OUT == notification)
+			{
+				printk("%s: capture stream output \r\n", __func__);
+			}
+		}
+#endif
+/* OPPO 2013-07-29 lanhe Add end */
+		
 		break;
 	case NOTIFY_VFE_IRQ:{
 		struct msm_vfe_cfg_cmd cfg_cmd;

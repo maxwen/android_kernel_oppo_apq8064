@@ -24,7 +24,9 @@
 #include <mach/socinfo.h>
 #include "devices.h"
 #include "board-8064.h"
-
+#ifdef CONFIG_VENDOR_EDIT
+#include <linux/pcb_version.h>
+#endif
 
 /* OPPO 2012-11-14 DuYuanHua Add to enable/disable the HOTSWAP feature 
 *   If enabled, we will use GPIO_72 as the sim card detection pin
@@ -243,6 +245,8 @@ struct msm_gpiomux_config vcap_configs[] = {
 			[GPIOMUX_ACTIVE] =		&gpio_vcap_config[2],
 		}
 	},
+	/* OPPO 2013-07-24 liubin delete for m9mo interrupt start */
+	#if 0
 	{
 		.gpio = 26,
 		.settings = {
@@ -250,6 +254,8 @@ struct msm_gpiomux_config vcap_configs[] = {
 			[GPIOMUX_ACTIVE] =		&gpio_vcap_config[1],
 		}
 	},
+	#endif
+	/* OPPO 2013-07-24 liubin delete end */
 	{
 		.gpio = 8,
 		.settings = {
@@ -1003,6 +1009,33 @@ static struct gpiomux_setting ap2mdm_wakeup = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+
+/* OPPO 2013-0-09 Neal add for vsync*/
+static struct gpiomux_setting mdp_vsync_suspend_cfg = { 
+	.func = GPIOMUX_FUNC_GPIO, 
+	.drv = GPIOMUX_DRV_2MA, 
+	.pull = GPIOMUX_PULL_DOWN, 
+}; 
+
+static struct gpiomux_setting mdp_vsync_active_cfg = { 
+	.func = GPIOMUX_FUNC_1, 
+	.drv = GPIOMUX_DRV_2MA, 
+	.pull = GPIOMUX_PULL_DOWN, 
+}; 
+
+
+
+static struct msm_gpiomux_config msm8960_mdp_vsync_configs[] __initdata = { 
+	{ 
+		.gpio = 0, 
+		.settings = { 
+				[GPIOMUX_ACTIVE] = &mdp_vsync_active_cfg, 
+				[GPIOMUX_SUSPENDED] = &mdp_vsync_suspend_cfg, 
+			}, 
+	} 
+}; 
+/* OPPO 2013-0-09 Neal add end*/
+
 static struct msm_gpiomux_config mdm_configs[] __initdata = {
 	/* AP2MDM_STATUS */
 	{
@@ -1348,6 +1381,38 @@ static struct msm_gpiomux_config mpq8064_gsbi5_i2c_configs[] __initdata = {
 #endif
 /* OPPO 2013-03-18 zhenwx  Delete end */
 
+/* OPPO 2013-07-23 sjc add begin for bq27541 */
+static struct gpiomux_setting apq8064_gsbi5_i2c_cfg[] = {
+	{
+		.func = GPIOMUX_FUNC_2,
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_NONE,
+	},
+	{
+		.func = GPIOMUX_FUNC_2,
+		.drv = GPIOMUX_DRV_2MA,
+		.pull = GPIOMUX_PULL_NONE,
+	},
+};
+static struct msm_gpiomux_config apq8064_gsbi5_i2c_configs[] __initdata = {
+	{
+		.gpio      = 54,			/* GSBI5 I2C QUP SCL */
+		.settings = {
+			[GPIOMUX_ACTIVE] = &apq8064_gsbi5_i2c_cfg[0],
+			[GPIOMUX_SUSPENDED] = &apq8064_gsbi5_i2c_cfg[0],
+
+		},
+	},
+	{
+		.gpio      = 53,			/* GSBI5 I2C QUP SDA */
+		.settings = {
+			[GPIOMUX_ACTIVE] = &apq8064_gsbi5_i2c_cfg[1],
+			[GPIOMUX_SUSPENDED] = &apq8064_gsbi5_i2c_cfg[1],
+		},
+	},
+};
+/* OPPO 2013-07-23 sjc add end */
+
 static struct gpiomux_setting ir_suspended_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
@@ -1542,10 +1607,6 @@ static struct msm_gpiomux_config apq8064_sdc3_configs[] __initdata = {
 		},
 	},
 };
-/* OPPO 2013-02-04 kangjian added begin for s5k6a3yx's I2C */
-
-#include <linux/pcb_version.h>
-/* OPPO 2013-02-04 kangjian added end */
 
 static struct msm_gpiomux_config sglte2_qsc_configs[] __initdata = {
 	/* MDM2AP_STATUS */
@@ -1618,6 +1679,69 @@ static struct msm_gpiomux_config apq8064_uartdm_gsbi4_configs[] __initdata = {
 		},
 	},
 };
+
+/* OPPO 2013-07-24 liubin Add for spi gpio configs start */
+static struct gpiomux_setting gsbi4_spi_cs_config = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_12MA,
+	.pull = GPIOMUX_PULL_UP,
+};
+
+static struct gpiomux_setting gsbi4_spi_active = {
+	.func = GPIOMUX_FUNC_1,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+
+static struct gpiomux_setting gsbi4_spi_suspend = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
+};
+
+static struct msm_gpiomux_config apq8064_spi_gsbi4_configs[] __initdata = 
+{
+	{
+		.gpio      = 12,        /* GSBI4 SPI_CS */
+		.settings = {
+			[GPIOMUX_ACTIVE] = &gsbi4_spi_cs_config,
+			[GPIOMUX_SUSPENDED] = &gsbi4_spi_suspend,
+		},
+	},
+	{
+		.gpio      = 10,       /* GSBI4 SPI_MOSI */
+		.settings = {
+			[GPIOMUX_ACTIVE] 	= &gsbi4_spi_active,
+			[GPIOMUX_SUSPENDED] = &gsbi4_spi_suspend,
+		},
+	},
+	{
+		.gpio      = 13,        /* GSBI4 SPI_CLK */
+		.settings = {
+			[GPIOMUX_ACTIVE] 	= &gsbi4_spi_active,
+			[GPIOMUX_SUSPENDED] = &gsbi4_spi_suspend,
+		},
+	},	
+};
+/* OPPO 2013-07-24 liubin Add end */
+
+/* OPPO 2013-07-24 liubin Add for m9mo interrupt gpio config start */
+static struct gpiomux_setting m9mo_int_config = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
+};
+static struct msm_gpiomux_config apq8064_m9mo_inter_configs[] __initdata = 
+{
+	{
+		.gpio      = 26,        /* m9mo interrupt */
+		.settings = {
+			[GPIOMUX_ACTIVE] = &m9mo_int_config,
+			[GPIOMUX_SUSPENDED] = &m9mo_int_config,
+		},
+	},
+};
+/* OPPO 2013-07-24 liubin Add end */
 
 static struct msm_gpiomux_config mpq8064_uartdm_configs[] __initdata = {
 	{ /* UARTDM_TX */
@@ -1697,6 +1821,13 @@ void __init apq8064_init_gpiomux(void)
 /* OPPO 2013-02-04 kangjian added end */
 	}
 
+/* OPPO 2013-07-23 sjc add begin for bq27541*/
+	if (get_pcb_version() >= PCB_VERSION_EVT_N1) {
+		msm_gpiomux_install(apq8064_gsbi5_i2c_configs,
+				ARRAY_SIZE(apq8064_gsbi5_i2c_configs));
+	}
+/* OPPO 2013-07-23 sjc add end*/
+
 	msm_gpiomux_install(apq8064_slimbus_config,
 			ARRAY_SIZE(apq8064_slimbus_config));
 
@@ -1721,10 +1852,14 @@ void __init apq8064_init_gpiomux(void)
 	msm_gpiomux_install(apq8064_ext_regulator_configs,
 			ARRAY_SIZE(apq8064_ext_regulator_configs));
 
-//OPPO 2012-11-2 huyu add for lcd backlight enabl
+/* OPPO 2013-0-09 Neal add for vsync and lcd backlight enable */
 #ifdef CONFIG_VENDOR_EDIT
 	msm_gpiomux_install(apq8064_backlight_enable,
 			ARRAY_SIZE(apq8064_backlight_enable));
+	msm_gpiomux_install(msm8960_mdp_vsync_configs, 
+		ARRAY_SIZE(msm8960_mdp_vsync_configs));
+/* OPPO 2013-0-09 Neal add end*/
+
 #endif
 //OPPO 2012-11-2 huyu add for lcd backlight enabl
 
@@ -1782,6 +1917,16 @@ void __init apq8064_init_gpiomux(void)
 			ARRAY_SIZE(apq8064_uim_card_detection_configs));
 #endif
 /* OPPO 2012-11-14 DuYuanHua Add End*/
+	
+	/* OPPO 2013-07-24 liubin Add for install m9mo spi and interrupt gpio configs start */
+	if (get_pcb_version() >= PCB_VERSION_EVT_N1)
+	{
+		msm_gpiomux_install(apq8064_spi_gsbi4_configs,
+				ARRAY_SIZE(apq8064_spi_gsbi4_configs));
+		msm_gpiomux_install(apq8064_m9mo_inter_configs,
+				ARRAY_SIZE(apq8064_m9mo_inter_configs));
+	}
+	/* OPPO 2013-07-24 liubin Add end */
 
 	 if (machine_is_mpq8064_cdp())
 		msm_gpiomux_install(mpq8064_ir_configs,

@@ -97,7 +97,19 @@ extern struct platform_device apq8064_device_qup_i2c_gsbi4;
 /* OPPO 2013-02-04 kangjian Add begin for reason */
 extern struct platform_device apq8064_device_qup_i2c_gsbi7;
 /* OPPO 2013-02-04 kangjian Add end */
+/* OPPO 2013-07-24 sjc Add begin for reason */
+extern struct platform_device apq8064_device_qup_i2c_gsbi5;
+/* OPPO 2013-07-24 sjc Add end */
 extern struct platform_device apq8064_device_qup_spi_gsbi5;
+
+/* OPPO 2013-07-24 lanhe Add for gsbi4 spi start */
+extern struct platform_device msm8064_device_qup_spi_gsbi4;
+/* OPPO 2013-07-24 lanhe Add end */
+
+/* OPPO 2013-08-13 liubin Add for gsbi7 mux device start */
+extern struct platform_device msm8064_device_i2c_mux_gsbi7;
+/* OPPO 2013-08-13 liubin Add end */
+
 extern struct platform_device apq8064_slim_ctrl;
 extern struct platform_device apq8064_device_ssbi_pmic1;
 extern struct platform_device apq8064_device_ssbi_pmic2;

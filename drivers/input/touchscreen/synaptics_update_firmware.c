@@ -116,8 +116,8 @@ static void SynaSetup(void)
             break;
         }
     }
-    //printk("--[F34] data=0x%02x query=0x%02x [F01] data=0x%02x cmd=0x%02x--\n",
-    //    SynaF34DataBase, SynaF34QueryBase, SynaF01DataBase, SynaF01CommandBase);
+    printk("--[F34] data=0x%02x query=0x%02x [F01] data=0x%02x cmd=0x%02x--\n",
+        SynaF34DataBase, SynaF34QueryBase, SynaF01DataBase, SynaF01CommandBase);
 
     SynaF34Reflash_BlockNum = SynaF34DataBase;
     SynaF34Reflash_BlockData = SynaF34DataBase + 2;
@@ -193,8 +193,8 @@ static void SynaReadFirmwareInfo(void)
     SynaFirmwareBlockCount = uData[0] | (uData[1] << 8);
     SynaImageSize = SynaFirmwareBlockCount * SynaFirmwareBlockSize;
 
-    //printk("\nFirmware block:%d count:%d  total_size:%lu",
-    //        SynaFirmwareBlockSize, SynaFirmwareBlockCount, SynaImageSize);
+    printk("\nFirmware block:%d count:%d  total_size:%lu",
+            SynaFirmwareBlockSize, SynaFirmwareBlockCount, SynaImageSize);
 }
 
 /* SynaReadConfigInfo reads the F34 query registers and retrieves the block size and count
@@ -213,8 +213,8 @@ static void SynaReadConfigInfo(void)
     SynaConfigBlockCount = uData[0] | (uData[1] << 8);
     SynaConfigImageSize = SynaConfigBlockCount * SynaConfigBlockSize;
 
-    //printk("\nConfig   block:%d count:%d  total_size:%lu",
-    //        SynaConfigBlockSize, SynaConfigBlockCount, SynaConfigImageSize);
+    printk("\nConfig   block:%d count:%d  total_size:%lu",
+            SynaConfigBlockSize, SynaConfigBlockCount, SynaConfigImageSize);
 }
 
 
@@ -247,7 +247,7 @@ static void SynaWaitForATTN(void)
 //    unsigned int error;
 
     //error = waitATTN(ASSERT, 300);
-    //printk("----wait for ATTN 800 ms---\n");
+    printk("----wait for ATTN 800 ms---\n");
     msleep(800);
 }
 
@@ -287,12 +287,12 @@ static int SynaEnableFlashing(void)
     // Make sure Reflash is not already enabled
     do {
         readRMI(SynaF34_FlashControl, &uData, 1);
-        //printk("----Read reflash enable ---uData=0x%x--\n",uData);
+        printk("----Read reflash enable ---uData=0x%x--\n",uData);
     } while (uData  ==  0x0f);//while (((uData & 0x0f) != 0x00));
 
     // Clear ATTN
     readRMI (SynaF01DataBase, &uStatus, 1);
-    //printk("----Read status ---uStatus=0x%x--\n",uStatus);
+    printk("----Read status ---uStatus=0x%x--\n",uStatus);
     if ((uStatus &0x40) == 0) {
         // Write the "Enable Flash Programming command to F34 Control register
         // Wait for ATTN and then clear the ATTN.
@@ -309,16 +309,16 @@ static int SynaEnableFlashing(void)
         // Read the "Program Enabled" bit of the F34 Control register, and proceed only if the
         // bit is set.
         readRMI(SynaF34_FlashControl, &uData, 1);
-        //printk("----read--enable ---uData=0x%x--\n",uData);
+        printk("----read--enable ---uData=0x%x--\n",uData);
         while (uData != 0x80) {
             // In practice, if uData!=0x80 happens for multiple counts, it indicates reflash
             // is failed to be enabled, and program should quit
-            //printk("%s Can NOT enable reflash !!!\n",__func__);
+            printk("%s Can NOT enable reflash !!!\n",__func__);
 
             if (!retry--)
                 return -1;
             readRMI(SynaF34_FlashControl, &uData, 1);
-            //printk("----read--enable ---uData=0x%x--\n",uData);
+            printk("----read--enable ---uData=0x%x--\n",uData);
         }
     }
     return 0;
@@ -354,7 +354,7 @@ static void SynaProgramConfiguration(void)
         uData[0] = blockNum & 0xff;
         uData[1] = (blockNum & 0xff00) >> 8;
 
-        //printk("--Writing config-- block: %d/%d \n", blockNum+1, SynaConfigBlockCount);
+        printk("--Writing config-- block: %d/%d \n", blockNum+1, SynaConfigBlockCount);
         //Block by blcok, write the block number and data to the corresponding F34 data registers
         writeRMI(SynaF34Reflash_BlockNum, &uData[0], 2);
         writeRMI(SynaF34Reflash_BlockData, puData, SynaConfigBlockSize);
@@ -384,26 +384,26 @@ static void SynaFinalizeReflash(void)
 
     SynaWaitForATTN();
     readRMI(SynaF01DataBase, &uData, 1);
-    //printk("-----SynaFinalizeReflash-1-\n");
+    printk("-----SynaFinalizeReflash-1-\n");
     // Sanity check that the reflash process is still enabled
     do {
         readRMI(SynaF34_FlashControl, &uStatus, 1);
-        //printk("-----SynaFinalizeReflash-2-\n");
+        printk("-----SynaFinalizeReflash-2-\n");
     } while ((uStatus & 0x0f) != 0x00);
-    //printk("-----SynaFinalizeReflash-3-\n");
+    printk("-----SynaFinalizeReflash-3-\n");
     readRMI((SynaF01DataBase + 1), &uStatus, 1);
-    //printk("-----SynaFinalizeReflash-4-\n");
+    printk("-----SynaFinalizeReflash-4-\n");
     SynaSetup();
-    //printk("-----SynaFinalizeReflash-5-\n");
+    printk("-----SynaFinalizeReflash-5-\n");
     uData = 0;
 
     // Check if the "Program Enabled" bit in F01 data register is cleared
     // Reflash is completed, and the image passes testing when the bit is cleared
     do {
         readRMI(SynaF01DataBase, &uData, 1);
-        //printk("-----SynaFinalizeReflash-6- data=%02x\n", uData);
+        printk("-----SynaFinalizeReflash-6- data=%02x\n", uData);
     } while ((uData & 0x40) != 0);
-    //printk("-----SynaFinalizeReflash-7-\n");
+    printk("-----SynaFinalizeReflash-7-\n");
     // Rescan PDT the update any changed register offsets
     SynaSetup();
 
@@ -422,7 +422,7 @@ static void SynaFlashFirmwareWrite(void)
         //Block by blcok, write the block number and data to the corresponding F34 data registers
         uData[0] = blockNum & 0xff;
         uData[1] = (blockNum & 0xff00) >> 8;
-        //printk("--Writing data-- block: %d/%d \n", blockNum+1, SynaFirmwareBlockCount);
+        printk("--Writing data-- block: %d/%d \n", blockNum+1, SynaFirmwareBlockCount);
         writeRMI(SynaF34Reflash_BlockNum, &uData[0], 2);
         //printk("--SynaFlashFirmwareWrite----2\n");
         writeRMI(SynaF34Reflash_BlockData, puFirmwareData, SynaFirmwareBlockSize);

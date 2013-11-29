@@ -40,6 +40,35 @@ int32_t msm_camera_i2c_rxdata(struct msm_camera_i2c_client *dev_client,
 	return rc;
 }
 
+/* OPPO 2013-07-24 lanhe Add function for more write less read by i2c start */
+#ifdef CONFIG_M9MO
+int32_t msm_vendor_i2c_rxdata(struct msm_camera_i2c_client *dev_client,
+	unsigned char *rxdata, int tx_len, int data_length)
+{
+	int32_t rc = 0;
+	uint16_t saddr = dev_client->client->addr >> 1;
+	struct i2c_msg msgs[] = {
+		{
+			.addr  = saddr,
+			.flags = 0,
+			.len   = tx_len,
+			.buf   = rxdata,
+		},
+		{
+			.addr  = saddr,
+			.flags = I2C_M_RD,
+			.len   = data_length,
+			.buf   = rxdata,
+		},
+	};
+	rc = i2c_transfer(dev_client->client->adapter, msgs, 2);
+	if (rc < 0)
+		S_I2C_DBG("msm_camera_i2c_rxdata failed 0x%x\n", saddr);
+	return rc;
+}
+#endif
+/* OPPO 2013-07-24 lanhe Add end */
+
 int32_t msm_camera_i2c_txdata(struct msm_camera_i2c_client *dev_client,
 				unsigned char *txdata, int length)
 {

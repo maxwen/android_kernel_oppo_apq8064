@@ -71,6 +71,9 @@ VREG_CONSUMERS(L8) = {
 	REGULATOR_SUPPLY("cam_vana",		"0-0010"),//s5k6a3yx
 	REGULATOR_SUPPLY("cam_vana",		"7-0010"),//s5k6a3yx
 /* OPPO 2013-02-04 kangjian add end */
+	/* OPPO 2013-07-24 lanhe Add for m9mo start */
+	REGULATOR_SUPPLY("cam_vaf",     	"7-003e"),
+	/* OPPO 2013-07-24 lanhe Add end */
 };
 VREG_CONSUMERS(L9) = {
 	REGULATOR_SUPPLY("8921_l9",		NULL),
@@ -164,6 +167,9 @@ VREG_CONSUMERS(L28) = {
 	REGULATOR_SUPPLY("core_vdd",		"pil_qdsp6v4.1"),
 /* OPPO 2013-02-04 kangjian added begin for camera */	
 	REGULATOR_SUPPLY("cam_vdig",        "4-0010"),
+	/* OPPO 2013-07-24 lanhe Add for m9mo start */
+   	REGULATOR_SUPPLY("cam_vdig",		"7-003e"),
+   	/* OPPO 2013-07-24 lanhe Add end */
 /* OPPO 2013-02-04 kangjian added end for camera */	
 };
 VREG_CONSUMERS(L29) = {
@@ -238,6 +244,9 @@ VREG_CONSUMERS(LVS5) = {
 	REGULATOR_SUPPLY("cam_vio",		"4-0030"),
 	REGULATOR_SUPPLY("cam_vio",		"0-0010"),//s5k6a3yx
 	REGULATOR_SUPPLY("cam_vio",		"7-0010"),//s5k6a3yx
+	/* OPPO 2013-07-24 lanhe Add for m9mo start */
+	REGULATOR_SUPPLY("cam_vio",		"7-003e"),//m9mo
+	/* OPPO 2013-07-24 lanhe Add end */
 /* OPPO 2013-02-04 kangjian add end */
 };
 VREG_CONSUMERS(LVS6) = {
@@ -624,7 +633,14 @@ msm8064_pm8921_regulator_pdata[] __devinitdata = {
 
 	/*           ID        name     always_on pd       en_t supply reg_ID */
 	PM8XXX_VS300(USB_OTG,  "8921_usb_otg",  0, 0,         0, "ext_5v", 2),
+	
+/* OPPO 2013-08-09 liuhd modify begin for sleep current */
+#ifdef CONFIG_VENDOR_EDIT
+	PM8XXX_VS300(HDMI_MVS, "8921_hdmi_mvs", 0, 0,         0, "ext_5v", 3),
+#else
 	PM8XXX_VS300(HDMI_MVS, "8921_hdmi_mvs", 0, 1,         0, "ext_5v", 3),
+#endif
+/* OPPO 2013-08-09 liuhd modify end */
 };
 
 /* PM8917 regulator constraints */

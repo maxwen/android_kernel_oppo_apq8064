@@ -2885,9 +2885,7 @@ static int mdp4_calc_req_mdp_clk(struct msm_fb_data_type *mfd,
 	 * 4 lines input during back porch time if scaling is
 	 * required(FIR).
 	 */
-/* OPPO 2013.7.5 Neal modify for blue screen */
-	if ((mfd->panel_info.lcdc.v_back_porch < 4) &&
-/* OPPO 2013.7.5 Neal modify for blue screen */
+	if ((mfd->panel_info.lcdc.v_back_porch <= 4) &&
 	    (src_h != dst_h) &&
 	    (mfd->panel_info.lcdc.v_back_porch)) {
 		u32 clk = 0;
@@ -2941,9 +2939,7 @@ static int mdp4_calc_pipe_mdp_clk(struct msm_fb_data_type *mfd,
 				  struct mdp4_overlay_pipe *pipe)
 {
 	int ret = -EINVAL;
-/* OPPO 2013.7.5 Neal modify for blue screen */
-	u32 shift = 16;
-/* OPPO 2013.7.5 Neal modify for blue screen */
+
 	if (!pipe) {
 		pr_err("%s: pipe is null!\n", __func__);
 		return ret;
@@ -2975,9 +2971,6 @@ static int mdp4_calc_pipe_mdp_clk(struct msm_fb_data_type *mfd,
 	pr_debug("%s: required mdp clk %d mixer %d pipe ndx %d\n",
 		 __func__, pipe->req_clk, pipe->mixer_num, pipe->pipe_ndx);
 
-/* OPPO 2013.7.5 Neal modify for blue screen */
-	pipe->req_clk = (((pipe->req_clk) >> shift) * 23 / 20) << shift;
-/* OPPO 2013.7.5 Neal modify for blue screen */
 	return 0;
 }
 
@@ -3163,13 +3156,10 @@ int mdp4_overlay_mdp_perf_req(struct msm_fb_data_type *mfd)
 		cnt++;
 		if (worst_mdp_clk < pipe->req_clk)
 			worst_mdp_clk = pipe->req_clk;
-/* OPPO Neal modify for black screen*/
+
 		if (pipe->req_clk > mdp_max_clk)
-		{
-			pipe->req_clk = mdp_max_clk;
-			//perf_req->use_ov_blt[pipe->mixer_num] = 1;
-		}
-/* OPPO Neal modify end*/
+			perf_req->use_ov_blt[pipe->mixer_num] = 1;
+
 		if (pipe->mixer_num == MDP4_MIXER2)
 			perf_req->use_ov_blt[MDP4_MIXER2] = 1;
 

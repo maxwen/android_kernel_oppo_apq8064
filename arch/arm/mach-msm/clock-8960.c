@@ -5340,7 +5340,13 @@ static struct clk_lookup msm_clocks_8064[] = {
 	CLK_LOOKUP("core_clk",		gsbi2_qup_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi3_qup_clk.c,	"qup_i2c.3"),
 	CLK_LOOKUP("core_clk",		gsbi4_qup_clk.c,	"qup_i2c.4"),
+	/* OPPO 2013-07-24 lanhe Modify for m9mo spi clock start */
+	#if 0
 	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	"spi_qsd.0"),
+	#else
+	CLK_LOOKUP("core_clk",		gsbi4_qup_clk.c,	"spi_qsd.0"),
+	#endif
+	/* OPPO 2013-07-24 lanhe Modify end */
 	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	"qup_i2c.5"),
 	CLK_LOOKUP("core_clk",		gsbi6_qup_clk.c,	""),
 /* OPPO 2013-02-04 kangjian Modify begin for s5k6a3yx's I2C */
@@ -5403,15 +5409,22 @@ static struct clk_lookup msm_clocks_8064[] = {
 	CLK_LOOKUP("iface_clk",		gsbi7_p_clk.c,	"msm_serial_hsl.0"),
 #endif
 #else
-
-
-	
+	/* OPPO 2013-07-24 lanhe Modify for m9mo spi clock start */
+	#if 0
 	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,		"spi_qsd.0"),
+	#else
+	CLK_LOOKUP("iface_clk",		gsbi4_p_clk.c,		"spi_qsd.0"),
+	#endif
+	/* OPPO 2013-07-24 lanhe Modify end */
+	
 	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,		"msm_serial_hsl.0"),
 	CLK_LOOKUP("iface_clk",		gsbi6_p_clk.c,		""),
 /* OPPO 2013-02-04 kangjian Modify begin for reason */
 	CLK_LOOKUP("iface_clk",		gsbi7_p_clk.c,	"qup_i2c.7"),
 /* OPPO 2013-02-04 kangjian Modify end */
+/* OPPO 2013-07-24 sjc Modify begin for reason */
+	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,	"qup_i2c.5"),
+/* OPPO 2013-07-24 sjc Modify end */
 /* OPPO 2013-03-18 zhenwx  Modify end */
 #endif
 	CLK_LOOKUP("ref_clk",	tsif_ref_clk.c,	"msm_tspp.0"),
@@ -5444,6 +5457,9 @@ static struct clk_lookup msm_clocks_8064[] = {
 /* OPPO 2013-02-04 kangjian added start for sub camera's clk */
 	CLK_LOOKUP("cam_clk",		cam2_clk.c,	"0-0010"),
 	CLK_LOOKUP("cam_clk",		cam2_clk.c,	"7-0010"),
+	/* OPPO 2013-07-24 lanhe Add for m9mo clock start */
+	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"7-003e"),
+	/* OPPO 2013-07-24 lanhe Add end */
 /* OPPO 2013-02-04 kangjian added end */
 	CLK_LOOKUP("csi_src_clk",	csi0_src_clk.c,		"msm_csid.0"),
 	CLK_LOOKUP("csi_src_clk",	csi1_src_clk.c,		"msm_csid.1"),

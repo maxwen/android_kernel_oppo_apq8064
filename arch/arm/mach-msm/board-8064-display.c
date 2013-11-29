@@ -28,6 +28,10 @@
 #include "devices.h"
 #include "board-8064.h"
 
+#ifdef CONFIG_VENDOR_EDIT
+#include <linux/pcb_version.h>
+#endif
+
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 /* prim = 1920 x 1088 x 3(bpp) x 3(pages) */
 #define MSM_FB_PRIM_BUF_SIZE roundup(1920 * 1088 * 4 * 3, 0x10000)
@@ -61,7 +65,10 @@ static struct resource msm_fb_resources[] = {
 #define LVDS_FRC_PANEL_NAME "lvds_frc_fhd"
 #define MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME "mipi_video_toshiba_wsvga"
 /* OPPO 2012-07-21 zhengzk Add begin for add orise module */
+#ifdef CONFIG_VENDOR_EDIT
 #define MIPI_VIDEO_ORISE_OPPO_PANEL_NAME	"mipi_video_orise_oppo"
+#define MIPI_CMD_ORISE_OPPO_N1_PANEL_NAME  "mipi_cmd_orise_oppo_n1"
+#endif
 /* OPPO 2012-07-21 zhengzk Add end */
 #define MIPI_VIDEO_CHIMEI_WXGA_PANEL_NAME "mipi_video_chimei_wxga"
 #define HDMI_PANEL_NAME "hdmi_msm"
@@ -94,7 +101,7 @@ static void set_mdp_clocks_for_wuxga(void);
 static int msm_fb_detect_panel(const char *name)
 {
 	/* OPPO 2012-07-24 zhengzk Modify for MIPI start */
-#if 0
+#ifndef CONFIG_VENDOR_EDIT
 	u32 version;
 	if (machine_is_apq8064_liquid()) {
 		version = socinfo_get_platform_version();
@@ -129,10 +136,17 @@ static int msm_fb_detect_panel(const char *name)
 		}
 	}
 #else
-	if (!strncmp(name, MIPI_VIDEO_ORISE_OPPO_PANEL_NAME,
-		strnlen(MIPI_VIDEO_ORISE_OPPO_PANEL_NAME,
-			PANEL_NAME_MAX_LEN)))
-		return 0;
+    if(get_pcb_version() >= PCB_VERSION_EVT_N1){
+		if (!strncmp(name, MIPI_CMD_ORISE_OPPO_N1_PANEL_NAME,
+			strnlen(MIPI_CMD_ORISE_OPPO_N1_PANEL_NAME,
+				PANEL_NAME_MAX_LEN)))
+			return 0;
+	} else {
+		if (!strncmp(name, MIPI_VIDEO_ORISE_OPPO_PANEL_NAME,
+			strnlen(MIPI_VIDEO_ORISE_OPPO_PANEL_NAME,
+				PANEL_NAME_MAX_LEN)))
+			return 0;
+	}
 #endif
 /* OPPO 2012-07-24 zhengzk Modify for MIPI end */
 
@@ -374,12 +388,12 @@ static bool dsi_power_on;
 int mipi_dsi_panel_power(int on)
 {
 /* OPPO 2012-08-31 zhengzk Modify begin for LCD */
-#if 0
 	static struct regulator *reg_lvs7, *reg_l2, *reg_l11, *reg_ext_3p3v;
-	static int gpio36, gpio25, gpio26, mpp3;
-#else 
-	static struct regulator *reg_lvs7, *reg_l2, *reg_l11, *reg_l22, *reg_ext_3p3v;
-	static int gpio36, gpio25, gpio26, mpp3;
+	static int gpio36, gpio25, mpp3;
+#ifdef CONFIG_VENDOR_EDIT
+	static struct regulator *reg_l22;
+#else
+	static int gpio26;
 #endif
 /* OPPO 2013-07-4 Neal Modify end*/
 	int rc;
@@ -415,20 +429,20 @@ int mipi_dsi_panel_power(int on)
 						PTR_ERR(reg_l11));
 				return -ENODEV;
 		}
-		/* OPPO 2012-08-31 zhengzk Modify begin for LCD */
-#if 0
+/* OPPO 2012-08-31 zhengzk Modify begin for LCD */
+#ifndef CONFIG_VENDOR_EDIT
 		rc = regulator_set_voltage(reg_l11, 3000000, 3000000);
 #else
 		rc = regulator_set_voltage(reg_l11, 3100000, 3100000);
 #endif
-		/* OPPO 2012-08-31 zhengzk Modify end */
+/* OPPO 2012-08-31 zhengzk Modify end */
 		if (rc) {
 				pr_err("set_voltage l11 failed, rc=%d\n", rc);
 				return -EINVAL;
 		}
 
-		/* OPPO 2012-08-31 zhengzk Add begin for LCD */
-	
+/* OPPO 2012-08-31 zhengzk Add begin for LCD */
+#ifdef CONFIG_VENDOR_EDIT	
 		reg_l22 = regulator_get(NULL, "8921_l22");
 		if (IS_ERR(reg_l22)) {
 				pr_err("could not get 8921_l22, rc = %ld\n",
@@ -441,7 +455,8 @@ int mipi_dsi_panel_power(int on)
 				pr_err("set_voltage l22 failed, rc=%d\n", rc);
 				return -EINVAL;
 		}
-		/* OPPO 2012-08-31 zhengzk Modify end */
+#endif
+/* OPPO 2012-08-31 zhengzk Modify end */
 
 		if (machine_is_apq8064_liquid()) {
 			reg_ext_3p3v = regulator_get(&msm_mipi_dsi1_device.dev,
@@ -467,13 +482,14 @@ int mipi_dsi_panel_power(int on)
 			return -ENODEV;
 		}
 
+#ifndef CONFIG_VENDOR_EDIT
 		gpio26 = PM8921_GPIO_PM_TO_SYS(26);
 		rc = gpio_request(gpio26, "pwm_backlight_ctrl");
 		if (rc) {
 			pr_err("request gpio 26 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
-
+#endif
 		gpio36 = PM8921_GPIO_PM_TO_SYS(36); /* lcd1_pwr_en_n */
 		rc = gpio_request(gpio36, "lcd1_pwr_en_n");
 		if (rc) {
@@ -481,12 +497,14 @@ int mipi_dsi_panel_power(int on)
 			return -ENODEV;
 		}
 
+#ifdef CONFIG_VENDOR_EDIT
 		rc = gpio_request(LCD_5V_EN_DVT, "lcd_5v_en");
 
 		if (rc) {
 			pr_err("request gpio 86 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
+#endif
 		dsi_power_on = true;
 	}
 
@@ -496,17 +514,18 @@ int mipi_dsi_panel_power(int on)
 			pr_err("enable lvs7 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
-		/* OPPO 2012-08-31 zhengzk Add begin for LCD */
-		rc = regulator_enable(reg_l22);
+/* OPPO 2012-08-31 zhengzk Add begin for LCD */
+#ifdef CONFIG_VENDOR_EDIT
+		rc = regulator_enable(reg_l22); //1.8v
 		if (rc) {
 			pr_err("enable l22 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
 		mdelay(10);
-		/* OPPO 2012-08-31 zhengzk Modify end */
+/* OPPO 2012-08-31 zhengzk Modify end */
 
 
-		rc = gpio_direction_output(LCD_5V_EN_DVT, 1);
+		rc = gpio_direction_output(LCD_5V_EN_DVT, 1);//5v
 
 		if (rc) {
 			pr_err("%s: unable to enable LCD_5V_EN!!!!!!!!!!!!\n", __func__);
@@ -515,6 +534,7 @@ int mipi_dsi_panel_power(int on)
 
 		gpio_set_value_cansleep(gpio36, 0);
 		gpio_set_value_cansleep(gpio25, 1);
+#endif
 		rc = regulator_set_optimum_mode(reg_l11, 110000);
 		if (rc < 0) {
 			pr_err("set_optimum_mode l11 failed, rc=%d\n", rc);
@@ -549,11 +569,15 @@ int mipi_dsi_panel_power(int on)
 
 		gpio_set_value_cansleep(gpio36, 0);
 		gpio_set_value_cansleep(gpio25, 1);
+#ifndef CONFIG_VENDOR_EDIT
 		if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
 			gpio_set_value_cansleep(gpio26, 1);
+#endif
 	} else {
+#ifndef CONFIG_VENDOR_EDIT
 		if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
 			gpio_set_value_cansleep(gpio26, 0);
+#endif
 		gpio_set_value_cansleep(gpio25, 0);
 		gpio_set_value_cansleep(gpio36, 1);
 
@@ -574,7 +598,7 @@ int mipi_dsi_panel_power(int on)
 			return -ENODEV;
 		}
 
-
+#ifdef CONFIG_VENDOR_EDIT
 		rc = gpio_direction_output(LCD_5V_EN_DVT, 0);
 
 		if (rc) {
@@ -589,6 +613,7 @@ int mipi_dsi_panel_power(int on)
 			return -ENODEV;
 		}
 		/* OPPO 2012-08-31 zhengzk Modify end */
+#endif
 		rc = regulator_disable(reg_lvs7);
 		if (rc) {
 			pr_err("disable reg_lvs7 failed, rc=%d\n", rc);
@@ -624,9 +649,11 @@ static bool lvds_power_on;
 static int lvds_panel_power(int on)
 {
 	static struct regulator *reg_lvs7, *reg_l2, *reg_ext_3p3v;
-	static int gpio36, gpio26, mpp3;
+	static int gpio36, mpp3;
 	int rc;
-
+#ifndef CONFIG_VENDOR_EDIT
+	static int gpio26;
+#endif
 	pr_debug("%s: on=%d\n", __func__, on);
 
 	if (!lvds_power_on) {
@@ -660,12 +687,14 @@ static int lvds_panel_power(int on)
 		    return -ENODEV;
 		}
 
+#ifndef CONFIG_VENDOR_EDIT
 		gpio26 = PM8921_GPIO_PM_TO_SYS(26);
 		rc = gpio_request(gpio26, "pwm_backlight_ctrl");
 		if (rc) {
 			pr_err("request gpio 26 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
+#endif
 
 		gpio36 = PM8921_GPIO_PM_TO_SYS(36); /* lcd1_pwr_en_n */
 		rc = gpio_request(gpio36, "lcd1_pwr_en_n");
@@ -710,11 +739,15 @@ static int lvds_panel_power(int on)
 
 		gpio_set_value_cansleep(gpio36, 0);
 		gpio_set_value_cansleep(mpp3, 1);
+#ifndef CONFIG_VENDOR_EDIT
 		if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
 			gpio_set_value_cansleep(gpio26, 1);
+#endif
 	} else {
+#ifndef CONFIG_VENDOR_EDIT
 		if (socinfo_get_pmic_model() == PMIC_MODEL_PM8917)
 			gpio_set_value_cansleep(gpio26, 0);
+#endif
 		gpio_set_value_cansleep(mpp3, 0);
 		gpio_set_value_cansleep(gpio36, 1);
 
@@ -807,7 +840,7 @@ static struct platform_device mipi_dsi2lvds_bridge_device = {
 };
 
 /* OPPO 2012-07-23 zhengzk Modify for add orise module */
-#if 0
+#ifndef CONFIG_VENDOR_EDIT
 static int toshiba_gpio[] = {LPM_CHANNEL};
 static struct mipi_dsi_panel_platform_data toshiba_pdata = {
 	.gpio = toshiba_gpio,
@@ -1141,13 +1174,13 @@ void __init apq8064_init_fb(void)
 	if (machine_is_apq8064_liquid())
 		platform_device_register(&mipi_dsi2lvds_bridge_device);
 	if (machine_is_apq8064_mtp())
-	/* OPPO 2012-07-23 zhengzk Modify begin for add orise module */
-#if 0
+/* OPPO 2012-07-23 zhengzk Modify begin for add orise module */
+#ifndef CONFIG_VENDOR_EDIT
 		platform_device_register(&mipi_dsi_toshiba_panel_device);
 #else
 		platform_device_register(&mipi_dsi_orise_panel_device);
 #endif
-	/* OPPO 2012-07-23 zhengzk Modify end */
+/* OPPO 2012-07-23 zhengzk Modify end */
 	if (machine_is_mpq8064_dtv())
 		platform_device_register(&lvds_frc_panel_device);
 

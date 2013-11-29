@@ -518,6 +518,11 @@ static void mdp4_dsi_video_tg_off(struct vsycn_ctrl *vctrl)
 	msleep(20);
 }
 
+/* OPPO 2013-10-11 gousj Add begin for splash flicker */
+#ifdef CONFIG_VENDOR_EDIT
+extern int mipi_dsi_panel_power(int on);
+#endif
+/* OPPO 2013-10-11 gousj Add end */
 int mdp4_dsi_video_splash_done(void)
 {
 	struct vsycn_ctrl *vctrl;
@@ -526,6 +531,11 @@ int mdp4_dsi_video_splash_done(void)
 	vctrl = &vsync_ctrl_db[cndx];
 
 	mdp4_dsi_video_tg_off(vctrl);
+/* OPPO 2013-10-11 gousj Add begin for splash flicker */
+#ifdef CONFIG_VENDOR_EDIT
+	mipi_dsi_panel_power(0);
+#endif
+/* OPPO 2013-10-11 gousj Add end */
 	mipi_dsi_controller_cfg(0);
 
 	return 0;

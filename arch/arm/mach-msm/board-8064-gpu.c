@@ -245,12 +245,24 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 			.bus_freq = 0,
 		},
 	},
+/* CONFIG_VENDOR_EDIT modify by qiujianfeng 2013-7-15, change init level to 2 */
+#ifndef CONFIG_VENDOR_EDIT
 	.init_level = 1,
+#else
+	.init_level = 2,
+#endif
+/* CONFIG_VENDOR_EDIT modify by qiujianfeng 2013-7-15 end */
 	.num_levels = 5,
 	.set_grp_async = NULL,
 	.idle_timeout = HZ/10,
 	.nap_allowed = true,
+/* OPPO 2013-10-04 gousj Modify begin for for instability seen with leaving gfx footswitch */
+#ifndef CONFIG_VENDOR_EDIT
 	.strtstp_sleepwake = true,
+#else
+	.strtstp_sleepwake = false,
+#endif
+/* OPPO 2013-10-04 gousj Modify end */
 	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE | KGSL_CLK_MEM_IFACE,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.bus_scale_table = &grp3d_bus_scale_pdata,

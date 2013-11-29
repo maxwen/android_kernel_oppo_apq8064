@@ -41,6 +41,9 @@
 #include <linux/regulator/consumer.h>
 #include <linux/pcb_version.h>
 
+/*OPPO yuyi 2013-10-24 add begin for nfc and mainboard devinfo*/
+#include <mach/device_info.h>
+/*OPPO yuyi 2013-10-24 add end for nfc and mainboard devinfo*/
 //TODO:replace and include corresponding head file for VEN/IRQ/FIRM I/O configuration
 //#include <plat/gpio-core.h>
 //#include <plat/gpio-cfg.h>
@@ -63,6 +66,9 @@ static struct regulator *ldol23;
 static struct regulator *lvs5;
 extern int get_pcb_version(void);
 /* OPPO 2012-07-20 liuhd Add end */
+/*OPPO yuyi 2013-10-24 add begin for I2C lock */
+DEFINE_MUTEX(i2c_bus_mutex);//for GSBI1_I2C err
+/*OPPO yuyi 2013-10-24 add end for I2C lock*/
 struct pn544_dev	
 {
 	wait_queue_head_t	read_wq;
@@ -75,6 +81,93 @@ struct pn544_dev
 	bool				irq_enabled;
 	spinlock_t			irq_enabled_lock;
 };
+/*OPPO yuyi 2013-10-24 add begin for nfc and mainboard devinfo*/
+struct manufacture_info mainboard_info;
+struct manufacture_info nfc_info = {
+	.version = "pn544",
+	.manufacture = "NXP",
+};
+static void nfc_verify(void)
+{
+	if(get_pcb_version() > PCB_VERSION_EVT_N1) {
+		nfc_info.version = "pn65o";
+	}
+}
+static void mainboard_verify(void)
+{
+	switch(get_pcb_version()) {
+		case PCB_VERSION_EVB:		
+			mainboard_info.version ="EVB";
+			break;
+		case PCB_VERSION_EVT:
+			mainboard_info.version = "EVT";
+			break;
+		case PCB_VERSION_DVT:
+			mainboard_info.version = "DVT";
+			break;
+		case PCB_VERSION_PVT:
+			mainboard_info.version = "PVT";
+			break;
+		case PCB_VERSION_EVB_TD:
+			mainboard_info.version = "EVB_TD";
+			break;
+		case PCB_VERSION_EVT_TD:
+			mainboard_info.version = "EVT_TD";
+			break;
+		case PCB_VERSION_DVT_TD:
+			mainboard_info.version = "DVT_TD";
+			break;
+		case PCB_VERSION_PVT_TD:
+			mainboard_info.version = "PVT_TD";
+			break;
+		case PCB_VERSION_PVT2_TD:
+			mainboard_info.version = "PVT2_TD";
+			break;
+		case PCB_VERSION_PVT3_TD:
+			mainboard_info.version = "PVT3_TD";
+			break;
+		case PCB_VERSION_EVT_N1:
+			mainboard_info.version = "EVT_N1T";
+			break;	
+		case PCB_VERSION_EVT_N1F:
+			mainboard_info.version = "EVT_N1F";
+			break;	
+		case PCB_VERSION_EVT3_N1F:
+			mainboard_info.version = "EVT3_N1F";
+			break;	
+		case PCB_VERSION_DVT_N1F:
+			mainboard_info.version = "DVT_N1F";
+			break;	
+		case PCB_VERSION_PVT_N1F:
+			mainboard_info.version = "PVT_N1F";
+			break;	
+		case PCB_VERSION_EVT3_N1T:
+			mainboard_info.version = "EVT3_N1T";
+			break;	
+		case PCB_VERSION_DVT_N1T:
+			mainboard_info.version = "DVT_N1T";
+			break;	
+		case PCB_VERSION_PVT_N1T:
+			mainboard_info.version = "PVT_N1T";
+			break;	
+		case PCB_VERSION_EVT_N1W:
+			mainboard_info.version = "EVT_N1W";
+			break;	
+		case PCB_VERSION_DVT_N1W:
+		    mainboard_info.version = "DVT_N1W";
+			break;	
+		case PCB_VERSION_PVT_N1W:
+			mainboard_info.version = "PVT_N1W";
+			break;
+		default:
+			mainboard_info.version = "UNKOWN";
+		}
+	mainboard_info.manufacture = "SA";
+	
+}
+			
+/*OPPO yuyi 2013-10-24 add end for nfc and mainboard devinfo*/
+
 
 static void pn544_disable_irq(struct pn544_dev *pn544_dev)
 {
@@ -147,7 +240,13 @@ static ssize_t pn544_dev_read(struct file *filp, char __user *buf, size_t count,
 	}
 
 	/* Read data */
+	/*OPPO yuyi 2013-10-24 add begin for I2C lock*/
+	mutex_lock(&i2c_bus_mutex);
+	/*OPPO yuyi 2013-10-24 add begin for I2C lock*/
 	ret = i2c_master_recv(pn544_dev->client, tmp, count);
+	/*OPPO yuyi 2013-10-24 add begin for I2C lock*/
+	mutex_unlock(&i2c_bus_mutex);
+	/*OPPO yuyi 2013-10-24 add begin for I2C lock*/
 	mutex_unlock(&pn544_dev->read_mutex);
 
 	/* pn544 seems to be slow in handling I2C read requests
@@ -211,7 +310,13 @@ static ssize_t pn544_dev_write(struct file *filp, const char __user *buf, size_t
 /* OPPO 2012-08-13 liuhd Delete end */
 	
 	/* Write data */
+	/*OPPO yuyi 2013-10-24 add begin for I2C lock*/
+	mutex_lock(&i2c_bus_mutex);
+	/*OPPO yuyi 2013-10-24 add begin for I2C lock*/
 	ret = i2c_master_send(pn544_dev->client, tmp, count);
+	/*OPPO yuyi 2013-10-24 add begin for I2C lock*/
+	mutex_unlock(&i2c_bus_mutex);
+	/*OPPO yuyi 2013-10-24 add begin for I2C lock*/
 	if (ret != count) 
 	{
 		pr_err("%s : i2c_master_send returned %d\n", __func__, ret);
@@ -250,7 +355,9 @@ static int pn544_dev_open(struct inode *inode, struct file *filp)
 static long pn544_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct pn544_dev *pn544_dev = filp->private_data;
-	
+/*OPPO yuyi 2013-10-04 add begin for NFC_SMX when standby*/
+	int ret = 0;
+/*OPPO yuyi 2013-10-04 add end for NFC_SMX when standby*/
 	switch (cmd) 
 	{
 	case PN544_SET_PWR:
@@ -259,7 +366,17 @@ static long pn544_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long a
 			/* power on with firmware download (requires hw reset)
 			 */
 			printk("%s power on with firmware\n", __func__);
-			
+/*OPPO yuyi 2013-10-04 add begin for NFC_SMX when standby*/
+		if (get_pcb_version() >= PCB_VERSION_EVT_N1) 
+		{
+			ret =0;		
+			ret = disable_irq_wake(pn544_dev->client->irq);
+			if(ret < 0)
+				{
+					printk("%s,power on with firmware disable_irq_wake %d\n",__func__,ret);
+				}	
+		}
+/*OPPO yuyi 2013-10-04 add end for NFC_SMX when standby*/
 			gpio_set_value(pn544_dev->ven_gpio, 1);
 			msleep(20);
 			gpio_set_value(pn544_dev->firm_gpio, 1);
@@ -268,8 +385,20 @@ static long pn544_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long a
 			msleep(100);
 			gpio_set_value(pn544_dev->ven_gpio, 1);
 			msleep(20);
+
 		} else if (arg == 1) {
 			/* power on */
+/*OPPO yuyi 2013-10-04 add begin for NFC_SMX when standby*/
+		if (get_pcb_version() >= PCB_VERSION_EVT_N1) 
+		{
+			ret =0;
+			ret = enable_irq_wake(pn544_dev->client->irq);
+			if(ret < 0)
+				{
+					printk("%s,power on enable_irq_wake  %d\n",__func__,ret);
+				}
+		}
+/*OPPO yuyi 2013-10-04 add end for NFC_SMX when standby*/
 			printk("%s power on\n", __func__);
 			
 			gpio_set_value(pn544_dev->firm_gpio, 0);
@@ -278,6 +407,17 @@ static long pn544_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long a
 			msleep(50);
 		} else  if (arg == 0) {
 			/* power off */
+/*OPPO yuyi 2013-10-04 add begin for NFC_SMX when standby*/
+		if (get_pcb_version() >= PCB_VERSION_EVT_N1) 
+		{
+			ret = 0;
+			ret = disable_irq_wake(pn544_dev->client->irq);
+			if(ret < 0)
+				{
+					printk("%s,power off disable_irq_wake %d\n",__func__,ret);
+				}	
+		}
+/*OPPO yuyi 2013-10-04 add end for NFC_SMX when standby*/
 			printk("%s power off\n", __func__);
 			
 			gpio_set_value(pn544_dev->firm_gpio, 0);
@@ -318,17 +458,14 @@ static int pn544_power(int on)
 			ldol23 = NULL;
 			goto ldo123_get_failed;
 		}
-		//printk("8921_l23 power on1 regulator yuyi+++++++++++++++++++++++++++++++++++++++++");
 		if (regulator_set_voltage(ldol23, 1800000, 1800000)) {
 			pr_err("%s: VREG ldol23 set voltage failed\n",  __func__);
 			goto ldo123_get_failed;
 		}
-		//printk("8921_l23 power on2 voltage yuyi+++++++++++++++++++++++++++++++++++++++++");
 		if (regulator_enable(ldol23)) {
 			pr_err("%s: VREG ldol23 enable failed\n", __func__);
 			goto ldo123_get_failed;
 		}
-		//printk("8921_l23 power on3 enable yuyi+++++++++++++++++++++++++++++++++++++++++");
 
 	    if (get_pcb_version() <= PCB_VERSION_EVT) { 
 			//evt---lvs5
@@ -343,7 +480,7 @@ static int pn544_power(int on)
 				goto lvs5_get_failed;
 			}
 		}
-		else {
+		else  if ((get_pcb_version() > PCB_VERSION_EVT)&&(get_pcb_version() < PCB_VERSION_EVT_N1)){
 		//dvt---l21
 			ldo121 = regulator_get(NULL, "8921_l21");
 			if (IS_ERR(ldo121)){
@@ -358,25 +495,25 @@ static int pn544_power(int on)
 			if (regulator_enable(ldo121)) {
 				pr_err("%s: VREG ldo121 enable failed\n", __func__);
 				goto ldo121_get_failed;
-			}		
+			}	
+			
 		}
 	}else if (!on) {
 		if (ldol23) {
 			regulator_disable(ldol23);
 			regulator_put(ldol23);
 		}
-		//printk(" power down nfc l23 yuyi-----------------------------------------\n");
 	    if (get_pcb_version() <= PCB_VERSION_EVT) {  //evt
 			if (lvs5){
 				regulator_disable(lvs5);
 				regulator_put(lvs5);
 			}
-	    }else { //dvt
+	    }else if ((get_pcb_version() > PCB_VERSION_EVT)&&(get_pcb_version() < PCB_VERSION_EVT_N1)){ //dvt
 			if (ldo121) {
 				regulator_disable(ldo121);
 				regulator_put(ldo121);
 			}
-			//printk(" power down  nfc l21 yuyi----------------------------------------\n");
+			
 		}
 	}
 	return 0 ;
@@ -406,9 +543,14 @@ static int pn544_probe(struct i2c_client *client, const struct i2c_device_id *id
 			printk("%s: ---nfc failed to power up nfc\n", __func__);
 			return	-ENODEV;
 		}
-	//printk(" power up nfc yuyi-------------------------------------\n");
 /* OPPO 2012-07-20 liuhd Add end */
 
+/*OPPO yuyi 2013-10-24 add begin for nfc_devinfo*/
+	nfc_verify();
+	register_device_proc("nfc", nfc_info.version, nfc_info.manufacture);
+	mainboard_verify();
+	register_device_proc("mainboard", mainboard_info.version, mainboard_info.manufacture);
+/*OPPO yuyi 2013-10-24 add end for nfc_devinfo*/
 	if (platform_data == NULL) {
 		pr_err("%s : nfc probe fail\n", __func__);
 		return  -ENODEV;
@@ -425,7 +567,6 @@ static int pn544_probe(struct i2c_client *client, const struct i2c_device_id *id
 		pr_err("gpio_nfc_int request error\n");
 		return  -ENODEV;
 	}
-	//printk(" power up IRQ yuyi---------------------------------------\n");
 
 	//VEN
 	ret = gpio_request(platform_data->ven_gpio, "nfc_ven");
@@ -433,7 +574,6 @@ static int pn544_probe(struct i2c_client *client, const struct i2c_device_id *id
 		pr_err("gpio_nfc_ven request error\n");
 		return  -ENODEV;
 	}
-	//printk(" power up VEN yuyi------------------------------------------\n");
 
 	//FIRM
 	ret = gpio_request(platform_data->firm_gpio, "nfc_firm");

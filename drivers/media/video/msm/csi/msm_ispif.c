@@ -281,7 +281,13 @@ static int msm_ispif_config(struct ispif_device *ispif,
 		rc = msm_ispif_validate_intf_status(ispif, intftype, vfe_intf);
 		if (rc < 0) {
 			pr_err("%s:%d failed rc %d\n", __func__, __LINE__, rc);
+/* OPPO 2013-08-19 lanhe Modify for N1 flash capture sync start */
+#ifndef CONFIG_M9MO
 			return rc;
+#else
+			rc = 0;
+#endif
+/* OPPO 2013-08-19 lanhe Modify end */
 		}
 		msm_ispif_sel_csid_core(ispif, intftype, ispif_params[i].csid,
 			vfe_intf);

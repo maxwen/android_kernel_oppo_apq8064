@@ -23,10 +23,14 @@
 
 #include "devices.h"
 #include "board-8064.h"
-/* OPPO 2013-02-04 kangjian added begin for led */
 #include <mach/board.h>
+
+#ifdef CONFIG_VENDOR_EDIT
+/* OPPO 2013-02-04 kangjian added begin for led */
 #include <linux/i2c/ssl3252.h>
 /* OPPO 2013-02-04 kangjian added end */
+#include <linux/pcb_version.h>
+#endif
 
 #ifdef CONFIG_MSM_CAMERA
 
@@ -215,6 +219,79 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
 	
 };
 
+/* OPPO 2013-07-24 liubin Add for N1 gpio config start */
+static struct msm_gpiomux_config apq8064_cam_common_configs_n1[] = {
+	{
+		.gpio = 1,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[2],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+	{
+		.gpio = 2,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[12],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+	{
+		.gpio = 3,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[2],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+	{
+		.gpio = 4,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[3],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+	{
+		.gpio = 5,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[1],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+	{
+		.gpio = 34,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[2],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+	{
+		.gpio = 107,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_settings[2],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+/* OPPO 2013-02-04 kangjian added begin for main camera's RST_N */
+	{
+		.gpio = 33,
+		.settings = {
+			[GPIOMUX_ACTIVE]	= &cam_settings[2],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+/* OPPO 2013-02-04 kangjian added begin for front camera's PWD_N */
+	{
+		.gpio = 37,
+		.settings = {
+			[GPIOMUX_ACTIVE]	= &cam_settings[2],
+			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+		},
+	},
+/* OPPO 2013-02-04 kangjian added end */
+	
+};
+
+/* OPPO 2013-07-24 liubin Add end */
+
 /* OPPO 2013-02-04 kangjian modified begin for led */
 #if 0
 #define VFE_CAMIF_TIMER1_GPIO 3
@@ -235,7 +312,9 @@ static struct msm_camera_sensor_flash_src oppo_flash_src = {
 	.flash_sr_type = MSM_CAMERA_FLASH_SRC_OPPO,
 	._fsrc.oppo_src.low_current = 200,
 	._fsrc.oppo_src.high_current = 400,
+#ifdef CONFIG_MSM_CAMERA_FLASH_SSL3252
 	._fsrc.oppo_src.led_control = &oppo_led_control,
+#endif
 };
 /* OPPO 2013-02-04 kangjian added end */
 
@@ -870,6 +949,110 @@ static struct msm_camera_sensor_info msm_camera_sensor_s5k6a3yx_data = {
 };
 /* OPPO 2012-08-29 yxq added end */
 
+/* OPPO 2013-07-24 lanhe Add for m9mo driver start */
+static struct msm_camera_sensor_flash_data flash_m9mo = {
+	.flash_type = MSM_CAMERA_FLASH_NONE,
+};
+
+static struct msm_camera_csi_lane_params m9mo_csi_lane_params = {
+	.csi_lane_assign = 0xE4,
+	.csi_lane_mask = 0xF,
+};
+
+static int32_t msm_camera_m9mo_ext_power_ctrl(int enable)
+{
+	
+	int rc = 0;
+	static int requested = 0;
+	//request resource first time
+	if(requested == 0)
+	{   
+	    requested = 1;
+      	gpio_request(23,"m9mo_pwr0");
+      	gpio_request(34,"m9mo_pwr1");
+      	gpio_request(36,"m9mo_pwr2");
+    }
+	if (enable) {
+		gpio_direction_output(
+				34,
+				GPIOF_OUT_INIT_HIGH);
+		msleep(2);
+		gpio_direction_output(
+				36,
+				GPIOF_OUT_INIT_HIGH);
+		gpio_direction_output(
+				23,
+				GPIOF_OUT_INIT_HIGH);
+		printk("msm_camera_m9mo_ext_power_ctrl on\n");
+	} else {
+	
+		gpio_direction_output(
+				23,
+				GPIOF_OUT_INIT_LOW);
+		gpio_direction_output(
+				34,
+				GPIOF_OUT_INIT_LOW);
+		gpio_direction_output(
+				36,
+				GPIOF_OUT_INIT_LOW);
+
+	}
+	return rc;
+}
+
+static struct camera_vreg_t m9mo_cam_vreg[] = {
+	{"cam_vdig", REG_LDO, 1050000, 1050000, 105000},
+	{"cam_vio", REG_VS, 0, 0, 0},
+	{"cam_vaf", REG_LDO, 2800000, 2800000, 300000},
+};
+
+
+
+static struct gpio msm8960_back_cam_gpio[] = {
+	{5, GPIOF_DIR_IN, "CAMIF_MCLK"},
+	{33, GPIOF_DIR_OUT, "CAM_RESET"},
+};
+
+static struct msm_gpio_set_tbl msm8960_back_cam_gpio_set_tbl[] = {
+	{33, GPIOF_OUT_INIT_LOW, 1000},
+	{33, GPIOF_OUT_INIT_HIGH, 4000},
+};
+static struct msm_camera_gpio_conf msm_8960_back_cam_gpio_conf = {
+	.cam_gpiomux_conf_tbl = apq8064_cam_2d_configs,
+	.cam_gpiomux_conf_tbl_size = ARRAY_SIZE(apq8064_cam_2d_configs),
+	.cam_gpio_common_tbl = apq8064_common_cam_gpio,
+	.cam_gpio_common_tbl_size = ARRAY_SIZE(apq8064_common_cam_gpio),
+	.cam_gpio_req_tbl = msm8960_back_cam_gpio,
+	.cam_gpio_req_tbl_size = ARRAY_SIZE(msm8960_back_cam_gpio),
+	.cam_gpio_set_tbl = msm8960_back_cam_gpio_set_tbl,
+	.cam_gpio_set_tbl_size = ARRAY_SIZE(msm8960_back_cam_gpio_set_tbl),
+};
+static struct msm_camera_i2c_conf apq8064_m9mo_i2c_conf = {
+	.use_i2c_mux = 1,
+	.mux_dev = &msm8064_device_i2c_mux_gsbi7,
+	.i2c_mux_mode = MODE_L,
+};
+static struct msm_camera_sensor_platform_info sensor_board_info_m9mo = {
+	.mount_angle = 90,
+	.cam_vreg = m9mo_cam_vreg,
+	.num_vreg = ARRAY_SIZE(m9mo_cam_vreg),
+	.gpio_conf = &msm_8960_back_cam_gpio_conf,
+	.i2c_conf = &apq8064_m9mo_i2c_conf,
+	.csi_lane_params = &m9mo_csi_lane_params,
+	.ext_power_ctrl = msm_camera_m9mo_ext_power_ctrl,
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_m9mo_data = {
+	.sensor_name = "m9mo",
+	.pdata = &msm_camera_csi_device_data[0],
+	.flash_data = &flash_m9mo,
+	.sensor_platform_info = &sensor_board_info_m9mo,
+	.csi_if = 1,
+	.camera_type = BACK_CAMERA_2D,
+	.sensor_type = YUV_SENSOR,
+};
+/* OPPO 2013-07-24 lanhe Add end */
+
 static struct msm_camera_sensor_flash_data flash_ov2720 = {
 	.flash_type	= MSM_CAMERA_FLASH_NONE,
 };
@@ -907,9 +1090,24 @@ void __init apq8064_init_cam(void)
 {
 	/* for SGLTE2 platform, do not configure i2c/gpiomux gsbi4 is used for
 	 * some other purpose */
-	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2) {
-		msm_gpiomux_install(apq8064_cam_common_configs,
-			ARRAY_SIZE(apq8064_cam_common_configs));
+	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2)
+	{
+/* OPPO 2013-07-24 liubin Modify for N1 not configure i2c start */
+#ifdef CONFIG_VENDOR_EDIT
+		if (get_pcb_version() >= PCB_VERSION_EVT_N1)
+		{
+			msm_gpiomux_install(apq8064_cam_common_configs_n1,
+				ARRAY_SIZE(apq8064_cam_common_configs_n1));
+		}
+		else
+		{
+#endif
+			msm_gpiomux_install(apq8064_cam_common_configs,
+				ARRAY_SIZE(apq8064_cam_common_configs));
+#ifdef CONFIG_VENDOR_EDIT
+		}
+#endif
+/* OPPO 2013-07-24 liubin Modify end */
 	}
 
 	if (machine_is_apq8064_cdp()) {
@@ -920,7 +1118,23 @@ void __init apq8064_init_cam(void)
 
 	platform_device_register(&msm_camera_server);
 	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2)
-		platform_device_register(&msm8960_device_i2c_mux_gsbi4);
+	{
+/* OPPO 2013-07-24 liubin Modify for N1 not configure i2c start */
+#ifdef CONFIG_VENDOR_EDIT
+		if (get_pcb_version() >= PCB_VERSION_EVT_N1)
+		{
+			platform_device_register(&msm8064_device_i2c_mux_gsbi7);	
+		}
+		else
+		{
+#endif
+			platform_device_register(&msm8960_device_i2c_mux_gsbi4);
+#ifdef CONFIG_VENDOR_EDIT
+		}
+#endif
+/* OPPO 2013-07-24 liubin Modify end */
+	}
+
 	platform_device_register(&msm8960_device_csiphy0);
 	platform_device_register(&msm8960_device_csiphy1);
 	platform_device_register(&msm8960_device_csid0);
@@ -932,6 +1146,16 @@ void __init apq8064_init_cam(void)
 
 #ifdef CONFIG_I2C
 static struct i2c_board_info apq8064_camera_i2c_boardinfo[] = {
+
+/* OPPO 2013-07-24 lanhe Add for m9mo driver start */
+#ifdef CONFIG_VENDOR_EDIT
+	{	
+		I2C_BOARD_INFO("m9mo", 0x3e),
+		.platform_data = &msm_camera_sensor_m9mo_data,
+		.irq           = MSM_GPIO_TO_INT(26),
+	},
+#endif
+/* OPPO 2013-07-24 lanhe Add end */
 	{
 	I2C_BOARD_INFO("imx074", 0x1A),
 	.platform_data = &msm_camera_sensor_imx074_data,
@@ -955,6 +1179,7 @@ static struct i2c_board_info apq8064_camera_i2c_boardinfo[] = {
 	I2C_BOARD_INFO("imx091", 0x34),
 	.platform_data = &msm_camera_sensor_imx091_data,
 	},
+#ifdef CONFIG_VENDOR_EDIT
 	{
 	I2C_BOARD_INFO("s5k3l1yx", 0x20),
 	.platform_data = &msm_camera_sensor_s5k3l1yx_data,
@@ -964,6 +1189,7 @@ static struct i2c_board_info apq8064_camera_i2c_boardinfo[] = {
 	I2C_BOARD_INFO("ssl3252", 0x30),
 	},
     /* OPPO 2013-02-04 kangjian added end */
+#endif
 };
 
 struct msm_camera_board_info apq8064_camera_board_info = {

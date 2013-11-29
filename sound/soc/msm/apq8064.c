@@ -34,6 +34,9 @@
 #ifdef CONFIG_SND_SOC_TPA2028D
 #include <sound/tpa2028d.h>
 #endif
+#ifdef CONFIG_VENDOR_EDIT
+#include <linux/pcb_version.h>
+#endif
 /* 8064 machine driver */
 #define PM8921_GPIO_BASE		NR_GPIO_IRQS
 #define PM8921_GPIO_PM_TO_SYS(pm_gpio)  (pm_gpio - 1 + PM8921_GPIO_BASE)
@@ -151,6 +154,11 @@ static struct tabla_mbhc_config mbhc_cfg = {
 	#endif
 	/*OPPO 2012-07-27 zhzhyon Modify end*/
 	.detect_extn_cable = false,
+	/*OPPO 2013-10-23 zhzhyon Add for MICBIAS DC*/
+	#ifdef CONFIG_VENDOR_EDIT
+	.micbias_always_on = false
+	#endif
+	/*OPPO 2013-10-23 zhzhyon Add end*/
 };
 
 static struct mutex cdc_mclk_mutex;
@@ -1379,6 +1387,15 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	apq8064_hs_detect_use_gpio = 1;
 	#endif
 	/*OPPO 2012-07-27 zhzhyon Add end*/
+
+	/*OPPO 2013-10-23 zhzhyon Add for MICBIAS DC*/
+	#ifdef CONFIG_VENDOR_EDIT
+	if(get_pcb_version() >= PCB_VERSION_EVT_N1)
+	{
+		mbhc_cfg.micbias_always_on = true;
+	}
+	#endif
+	/*OPPO 2013-10-23 zhzhyon Add end*/
 	if (apq8064_hs_detect_use_gpio == 1) 
 	{
 		pr_debug("%s: Using MBHC mechanical switch\n", __func__);

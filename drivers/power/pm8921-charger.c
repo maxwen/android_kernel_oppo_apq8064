@@ -32,7 +32,7 @@
 #include <linux/ratelimit.h>
 
 #include <mach/msm_xo.h>
-#include <mach/board.h>
+#include <linux/pcb_version.h>	//sjc add for 13017 & N1
 /* OPPO 2012-08-10 chendx Modify begin for 12025 charge*/
 #ifndef CONFIG_VENDOR_EDIT
 #include <mach/msm_hsusb.h>
@@ -195,12 +195,6 @@ static int logo_level  = 1;
 		if (logo_level  >= (level)) \
 			printk(__VA_ARGS__); \
    } while (0) 
-
-/* offmode charging led */
-extern void sled_turn_off(void);
-extern void sled_charging_internal(int value);
-static bool led_started = false;
-
 #endif /*CONFIG_VENDOR_EDIT*/
 /* OPPO 2012-08-22 chendx Add end */
 
@@ -710,6 +704,14 @@ static int get_prop_chg_voltage(struct pm8921_chg_chip *chip)
 	
 	return chip->charger_voltage;
 }
+
+int get_charger_voltage_from_adc(void)//sjc test 2013-07-08
+{
+	if (the_chip)
+		return get_prop_chg_voltage(the_chip);
+	else
+		return 5000;
+};
 
 static int get_chg_voltage(struct pm8921_chg_chip *chip)
 {
@@ -1309,7 +1311,8 @@ int update_presoc_long_time_sleep(int bms_soc,unsigned long sleep_time)
 		pr_info("resume calibrate ,%d%%,%d%%\n",
 			the_chip->batt_capacity_pre,the_chip->report_calib_soc);
 		
-		power_supply_changed(&the_chip->batt_psy);
+		if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjcadd
+			power_supply_changed(&the_chip->batt_psy);
 	}
 
 	return 0;
@@ -1936,10 +1939,29 @@ static int pm_chg_usb_trim(struct pm8921_chg_chip *chip, int index)
 #define PM8921_CHG_IUSB_MAX  7
 #define PM8921_CHG_IUSB_MIN  0
 #define PM8917_IUSB_FINE_RES BIT(0)
+
+/* OPPO 2013-11-06 Wangjc Add begin for solve N1 problem. */
+#ifdef CONFIG_VENDOR_EDIT
+static int iusb_counter = 0x00;
+#endif /*CONFIG_VENDOR_EDIT*/
+
 static int pm_chg_iusbmax_set(struct pm8921_chg_chip *chip, int index)
 {
 	u8 temp, fineres, reg_val;
 	int rc;
+/* OPPO 2013-11-06 Wangjc Add begin for solve N1 problem. */
+#ifdef CONFIG_VENDOR_EDIT
+	if(index == 2)
+	{
+		if(iusb_counter==0)
+		{
+			iusb_counter=10;
+		}
+
+		if(iusb_counter!=5)
+			return 0;
+	}
+#endif /*CONFIG_VENDOR_EDIT*/
 
 	reg_val = usb_ma_table[index].value >> 1;
 	fineres = PM8917_IUSB_FINE_RES & usb_ma_table[index].value;
@@ -2660,6 +2682,14 @@ static int get_prop_battery_uvolts(struct pm8921_chg_chip *chip)
 	return (int)result.physical;
 }
 
+int get_battery_voltage_from_adc(void)//sjc test 2013-07-08
+{
+	if (the_chip)
+		return get_prop_battery_uvolts(the_chip) / 1000;
+	else
+		return 3800;
+};
+
 static int voltage_based_capacity(struct pm8921_chg_chip *chip)
 {
 /* OPPO 2012-10-26 chendx Modify begin for  battery is remove,Default Soc is 30% */
@@ -2870,6 +2900,20 @@ static int get_prop_batt_current(struct pm8921_chg_chip *chip, int *curr)
 	return rc;
 }
 
+int get_charging_current_from_adc(void)//sjc test 2013-07-08
+{
+	int value;
+	int rc = 0;
+	if (the_chip) {
+		rc = get_prop_batt_current(the_chip, &value);
+		if (!rc)
+			return value / 1000;
+		else return 0;
+	}
+	else
+		return 0;
+}
+
 static int get_prop_batt_fcc(struct pm8921_chg_chip *chip)
 {
 	int rc;
@@ -3017,6 +3061,20 @@ static int get_prop_batt_temp(struct pm8921_chg_chip *chip, int *temp)
     return rc;
 #endif
 /* OPPO 2012-10-19 chendx Modify end */
+}
+
+int get_battery_temperature_from_adc(void)//sjc test 2013-07-08
+{
+	int temp = 0;
+	int rc = 0;
+	if (the_chip) {
+		rc = get_prop_batt_temp(the_chip, &temp);
+		if (!rc) 
+			return temp;
+		else return 30;
+	}
+	else
+		return 30;
 }
 
 static int pm_batt_power_get_property(struct power_supply *psy,
@@ -3569,16 +3627,16 @@ static void handle_usb_insertion_removal(struct pm8921_chg_chip *chip)
 	} else {
 		/* USB unplugged reset target current */
 		usb_target_ma = 0;
-		pm8921_chg_disable_irq(chip, CHG_GONE_IRQ);
 
-/* OPPO 2012-08-09 chendx Add begin for USBIN charger remove from otg driver */
-#ifdef CONFIG_VENDOR_EDIT		
-		/* offmode charging led */
-		if (MSM_BOOT_MODE__CHARGE == get_boot_mode()){
-			sled_turn_off();
-			led_started = false;
-		}
-#endif
+/* OPPO 2013-11-06 Wangjc Add begin for solve N1 problem. */
+#ifdef CONFIG_VENDOR_EDIT
+		iusb_counter = 0;
+#endif /*CONFIG_VENDOR_EDIT*/
+		pm8921_chg_disable_irq(chip, CHG_GONE_IRQ);
+	/* OPPO 2012-08-09 chendx Add begin for USBIN charger remove from otg driver */
+	#ifdef CONFIG_VENDOR_EDIT
+		//pm8921_chg_connected(USB_INVALID_CHARGER);
+	#endif
 	
 /* OPPO 2013-02-28 chendx Add begin for notify with bms */
 		bms_notify_is_charging_check(0,chip);
@@ -3902,10 +3960,18 @@ static irqreturn_t usbin_valid_irq_handler(int irq, void *data)
 	schedule_work(&the_chip->cancel_charge_det);
 #endif
 /*OPPO,Jiangsm add end*/
+/* OPPO 2013-11-06 sjc Modify begin for delay a exact time */
+#ifndef CONFIG_VENDOR_EDIT
 	if (usb_target_ma)
 		schedule_delayed_work(&the_chip->vin_collapse_check_work,
 				      round_jiffies_relative(msecs_to_jiffies
 						(VIN_MIN_COLLAPSE_CHECK_MS)));
+#else
+	if (usb_target_ma)
+		schedule_delayed_work(&the_chip->vin_collapse_check_work,
+				      msecs_to_jiffies(VIN_MIN_COLLAPSE_CHECK_MS));
+#endif
+/* OPPO 2013-11-06 sjc Modify end */
 	else
 	    handle_usb_insertion_removal(data);
 	return IRQ_HANDLED;
@@ -4103,7 +4169,21 @@ static void unplug_check_worker(struct work_struct *work)
 	int rc, ibat, active_chg_plugged_in, usb_ma;
 	int chg_gone = 0;
 	bool ramp = false;
+/* OPPO 2013-11-06 Wangjc Add begin for solve N1 problem. */
+#ifdef CONFIG_VENDOR_EDIT
+	if(iusb_counter>5)
+	{
+		iusb_counter--;
+		goto check_again_later;
+	}
+	else if(iusb_counter != 0)
+	{
+		pm_chg_iusbmax_set(chip,2);
+		iusb_counter = 0;
 
+		goto check_again_later;
+	}
+#endif /*CONFIG_VENDOR_EDIT*/
 	rc = pm8xxx_readb(chip->dev->parent, PBL_ACCESS1, &active_path);
 	if (rc) {
 		pr_err("Failed to read PBL_ACCESS1 rc=%d\n", rc);
@@ -4276,7 +4356,8 @@ static irqreturn_t fastchg_irq_handler(int irq, void *data)
 					round_jiffies_relative(msecs_to_jiffies
 						(chip->btc_delay_ms)));
 	}
-	power_supply_changed(&chip->batt_psy);
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+		power_supply_changed(&chip->batt_psy);//sjc test 2013-07-08
 	bms_notify_check(chip);
 	return IRQ_HANDLED;
 }
@@ -4300,9 +4381,10 @@ static irqreturn_t batt_removed_irq_handler(int irq, void *data)
 	pr_debug("battery present=%d state=%d", !status,
 					 pm_chg_get_fsm_state(data));
 	handle_stop_ext_chg(chip);
-	power_supply_changed(&chip->batt_psy);
-#endif
-/* OPPO 2012-11-30 chendx Delete end */
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+		power_supply_changed(&chip->batt_psy);//sjc test 2013-07-08
+	#endif
+	/* OPPO 2012-11-30 chendx Delete end */
 	return IRQ_HANDLED;
 }
 
@@ -4311,7 +4393,8 @@ static irqreturn_t batttemp_hot_irq_handler(int irq, void *data)
 	struct pm8921_chg_chip *chip = data;
 
 	handle_stop_ext_chg(chip);
-	power_supply_changed(&chip->batt_psy);
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+		power_supply_changed(&chip->batt_psy);//sjc test 2013-07-08
 	return IRQ_HANDLED;
 }
 
@@ -4320,8 +4403,11 @@ static irqreturn_t chghot_irq_handler(int irq, void *data)
 	struct pm8921_chg_chip *chip = data;
 
 	pr_debug("Chg hot fsm_state=%d\n", pm_chg_get_fsm_state(data));
-	power_supply_changed(&chip->batt_psy);
-	power_supply_changed(&chip->usb_psy);
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+	{
+		power_supply_changed(&chip->batt_psy);//sjc test 2013-07-08
+		power_supply_changed(&chip->usb_psy);//sjc test 2013-07-08
+	}
 	handle_stop_ext_chg(chip);
 	return IRQ_HANDLED;
 }
@@ -4333,8 +4419,11 @@ static irqreturn_t batttemp_cold_irq_handler(int irq, void *data)
 	pr_debug("Batt cold fsm_state=%d\n", pm_chg_get_fsm_state(data));
 	handle_stop_ext_chg(chip);
 
-	power_supply_changed(&chip->batt_psy);
-	power_supply_changed(&chip->usb_psy);
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+	{
+		power_supply_changed(&chip->batt_psy);//sjc test 2013-07-08
+		power_supply_changed(&chip->usb_psy);//sjc test 2013-07-08
+	}
 	return IRQ_HANDLED;
 }
 
@@ -4349,8 +4438,11 @@ static irqreturn_t chg_gone_irq_handler(int irq, void *data)
 	pr_debug("chg_gone=%d, usb_valid = %d\n", chg_gone, usb_chg_plugged_in);
 	pr_debug("Chg gone fsm_state=%d\n", pm_chg_get_fsm_state(data));
 
-	power_supply_changed(&chip->batt_psy);
-	power_supply_changed(&chip->usb_psy);
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+	{
+		power_supply_changed(&chip->batt_psy);//sjc test 2013-07-08
+		power_supply_changed(&chip->usb_psy);//sjc test 2013-07-08
+	}
 	return IRQ_HANDLED;
 }
 /*
@@ -4381,8 +4473,11 @@ static irqreturn_t bat_temp_ok_irq_handler(int irq, void *data)
 	else
 		handle_stop_ext_chg(chip);
 
-	power_supply_changed(&chip->batt_psy);
-	power_supply_changed(&chip->usb_psy);
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+	{
+		power_supply_changed(&chip->batt_psy);//sjc test 2013-07-08
+		power_supply_changed(&chip->usb_psy);//sjc test 2013-07-08
+	}
 	bms_notify_check(chip);
 #endif
 /* OPPO 2012-12-04 chendx Delete end */
@@ -4993,11 +5088,35 @@ static int pm8921_battery_temp_handle(struct pm8921_chg_chip *chip)
 {
 	int rc = -1;
 	int temperature = chip->battery_temp;
+	int temp;
+	static int count=0;
+
+	rc = get_prop_batt_temp(chip, &temp);
+	if(rc < 0)
+		return rc;
+	
+/* OPPO 2013-11-13 wangjc Add begin for solve the problem it can't warn in cold temp */
+	temp /= 10;
+/* OPPO 2013-11-13 wangjc Add end */
+	
+	if(temperature > temp) {
+		temperature = temp;
+	}
+	
+	if(temperature > chip->mBatteryTempBoundT4) {
+		count++;
+		if(count > 2)
+			count = 2;
+		if(count < 2)
+			return 0;
+	}else {
+		count = 0;
+	}
 
 	print_pm8921(DEBUG_TRACE, "%s: temperature =%d, region =%d\n", 
 	 		__func__, temperature, Pm8921_battery_temp_region_get(chip));
 	
-    if(temperature < chip->mBatteryTempBoundT0 &&
+    if(temperature <= chip->mBatteryTempBoundT0 &&
 		 temperature > AUTO_CHARGING_BATT_REMOVE_TEMP) /* battery is cold */
     {
             rc = handle_batt_temp_cold(chip);
@@ -5727,6 +5846,8 @@ static void update_heartbeat(struct work_struct *work)
 			"HEALTH_UNSPEC_FAILURE",
 		    "HEALTH_COLD"};
 #endif
+	if (get_pcb_version() >= PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+		return;//sjc test 2013-07-08
 /* OPPO 2012-10-19 chendx Add end */
 
 	pm_chg_failed_clear(chip, 1);
@@ -5760,15 +5881,6 @@ static void update_heartbeat(struct work_struct *work)
 	pm8921_check_battery_connect(chip);
 	
 	if (is_usb_chg_plugged_in(chip)){
-
-		/* offmode charging led */
-		if (MSM_BOOT_MODE__CHARGE == get_boot_mode()){
-			if (!led_started){
-				sled_charging_internal(chip->report_calib_soc);
-				led_started = true;
-			}
-		}
-
 		/*charge eoc with not begin with fastchged*/
 		if(boot_time == 0 && (!chip->charge_is_finished || chip->bms_notify.is_charging))
 			eoc_check_with_vbatt(chip);
@@ -7724,6 +7836,9 @@ static int __devinit pm8921_charger_probe(struct platform_device *pdev)
 	chip->batt_psy.num_properties = ARRAY_SIZE(msm_batt_power_props);
 	chip->batt_psy.get_property = pm_batt_power_get_property;
 	chip->batt_psy.external_power_changed = pm_batt_external_power_changed;
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+	{
+//#if 0//sjc test 2013-07-08
 	rc = power_supply_register(chip->dev, &chip->usb_psy);
 	if (rc < 0) {
 		pr_err("power_supply_register usb failed rc = %d\n", rc);
@@ -7740,6 +7855,8 @@ static int __devinit pm8921_charger_probe(struct platform_device *pdev)
 	if (rc < 0) {
 		pr_err("power_supply_register batt failed rc = %d\n", rc);
 		goto unregister_dc;
+	}
+//#endif
 	}
 
 	platform_set_drvdata(pdev, chip);
@@ -7764,9 +7881,9 @@ static int __devinit pm8921_charger_probe(struct platform_device *pdev)
 #endif
 #endif
 /* OPPO 2012-10-19 chendx Add end */
-
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)
 	/* set initial state of the USB charger type to UNKNOWN */
-	power_supply_set_supply_type(&chip->usb_psy, POWER_SUPPLY_TYPE_UNKNOWN);
+		power_supply_set_supply_type(&chip->usb_psy, POWER_SUPPLY_TYPE_UNKNOWN);
 
 	wake_lock_init(&chip->eoc_wake_lock, WAKE_LOCK_SUSPEND, "pm8921_eoc");
 	INIT_DELAYED_WORK(&chip->eoc_work, eoc_worker);
@@ -7822,6 +7939,11 @@ static int __devinit pm8921_charger_probe(struct platform_device *pdev)
 	/* OPPO 2012-08-31 chendx Add end */
 	/* determine what state the charger is in */
 	determine_initial_state(chip);
+	if (get_pcb_version() >= PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+	{
+		pm8921_disable_source_current(true);//sjc test 2013-07-08
+		return 0;//sjc test 2013-07-08
+	}
 
 	if (chip->update_time)
 		schedule_delayed_work(&chip->update_heartbeat_work,
@@ -7831,11 +7953,16 @@ static int __devinit pm8921_charger_probe(struct platform_device *pdev)
 
 unregister_batt:
 	wake_lock_destroy(&chip->eoc_wake_lock);
+	if (get_pcb_version() < PCB_VERSION_EVT_N1)//sjc add for 13017 & N1
+	{
 	power_supply_unregister(&chip->batt_psy);
+//#if 0//sjc test 2013-07-08
 unregister_dc:
 	power_supply_unregister(&chip->dc_psy);
 unregister_usb:
 	power_supply_unregister(&chip->usb_psy);
+//#endif
+	}
 free_chip:
 	kfree(chip);
 	return rc;

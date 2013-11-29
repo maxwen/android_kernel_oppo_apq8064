@@ -45,6 +45,7 @@
 #include <linux/sync.h>
 #include <linux/sw_sync.h>
 #include <linux/file.h>
+#include <linux/pcb_version.h>
 
 #define MSM_FB_C
 #include "msm_fb.h"
@@ -331,7 +332,14 @@ static void msm_fb_set_bl_brightness(struct led_classdev *led_cdev,
 			MAX_BACKLIGHT_BRIGHTNESS - 1) /
 			(MAX_BACKLIGHT_BRIGHTNESS - 1) / 2;
 #else
-		bl_lvl = get_bright_level(value);
+        if(get_pcb_version() >= PCB_VERSION_EVT_N1)
+        {
+        	bl_lvl = value; 
+        }
+        else
+        {
+            bl_lvl = get_bright_level(value);
+        }
 #endif
 /* OPPO 2013-03-22 zhengzk Add end */
 

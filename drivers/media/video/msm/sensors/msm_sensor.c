@@ -22,6 +22,12 @@
 #include <mach/vreg.h>
 #include <linux/i2c/ssl3252.h>
 /* OPPO 2013-02-04 kangjian added end */
+/* OPPO 2013-10-12 ranfei Add begin for »ñÈ¡Ó²¼þ°æ±¾ºÅ */
+#ifdef CONFIG_VENDOR_EDIT
+#include <linux/pcb_version.h>
+extern int get_pcb_version(void);
+#endif
+/* OPPO 2013-10-12 ranfei Add end */
 /*=============================================================*/
 void msm_sensor_adjust_frame_lines1(struct msm_sensor_ctrl_t *s_ctrl)
 {
@@ -2012,7 +2018,7 @@ int msm_sensor_enable_debugfs(struct msm_sensor_ctrl_t *s_ctrl)
 	return 0;
 }
 /* OPPO 2013-02-04 kangjian added begin for voltage supply changed */
-
+#ifdef CONFIG_S5K6A3YX
 /* OPPO 2013-02-04 kangjian added begin for reason */
 	static struct regulator *ldo8;
 	static struct regulator *lvs5;
@@ -2051,21 +2057,27 @@ int32_t s5k6a3yx_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 		goto enable_vreg_failed;
 	}
   #else
- 	// for old GSBI1's voltage
-	ldo21 = regulator_get(NULL, "8921_l21");
-	if (IS_ERR(ldo21)){
-		pr_err("%s: VREG LDO21 get failed\n", __func__);
-		ldo21 = NULL;
-		//goto ldo16_get_failed;
-		}
-	if (regulator_set_voltage(ldo21, 1800000, 1800000)) {
-		pr_err("%s: VREG LDO21 set voltage failed\n",  __func__);
-		//goto ldo16_set_voltage_failed;
-		}
-	if (regulator_enable(ldo21)) {
-		pr_err("%s: VREG LDO21 enable failed\n", __func__);
-		//goto ldo16_enable_failed;
-		}
+/* OPPO 2013-10-12 ranfei Modify begin for N1ÉÏÃæµçÔ´ÒÑ¾­¸ü¸Ä */
+#ifndef CONFIG_M9MO
+    if((get_pcb_version() > PCB_VERSION_EVT)&&(get_pcb_version() < PCB_VERSION_EVT_N1)) {
+    	// for old GSBI1's voltage
+    	ldo21 = regulator_get(NULL, "8921_l21");
+    	if (IS_ERR(ldo21)){
+    		pr_err("%s: VREG LDO21 get failed\n", __func__);
+    		ldo21 = NULL;
+    		//goto ldo16_get_failed;
+    	}
+    	if (regulator_set_voltage(ldo21, 1800000, 1800000)) {
+    		pr_err("%s: VREG LDO21 set voltage failed\n",  __func__);
+    		//goto ldo16_set_voltage_failed;
+    	}
+    	if (regulator_enable(ldo21)) {
+    		pr_err("%s: VREG LDO21 enable failed\n", __func__);
+    		//goto ldo16_enable_failed;
+        }
+    }
+#endif
+/* OPPO 2013-10-12 ranfei Modify end */
 	msleep(5);
 	
 	ldo8 = regulator_get(NULL, "8921_l8");
@@ -2249,8 +2261,10 @@ int32_t s5k6a3yx_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 /* OPPO 2013-02-04 kangjian deleted end */
 	return 0;
 }
+#endif
 /* OPPO 2013-02-04 kangjian added end */
 /* OPPO 2012-11-29 yxq Add begin for imx135's boot up sequence */
+#ifdef CONFIG_IMX135
 int32_t imx135_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t rc = 0;
@@ -2379,3 +2393,4 @@ int32_t imx135_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	kfree(s_ctrl->reg_ptr);
 	return 0;
 }
+#endif

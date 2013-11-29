@@ -216,6 +216,11 @@ config FB_MSM_MIPI_DSI_ORISE_OPPO
         bool
         select FB_MSM_MIPI_DSI
         default n
+
+config FB_MSM_MIPI_DSI_ORISE_OPPO_N1
+        bool
+        select FB_MSM_MIPI_DSI
+        default n
         
 config FB_MSM_MIPI_DSI_NT35516
 	bool
@@ -364,6 +369,11 @@ config FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 config FB_MSM_MIPI_ORISE_CMD_720P_PT
 	bool
 	select FB_MSM_MIPI_DSI_ORISE
+	default n
+
+config FB_MSM_MIPI_ORISE_CMD_OPPO_N1_PT
+	bool
+	select FB_MSM_MIPI_DSI_ORISE_OPPO_N1
 	default n
 
 config FB_MSM_MIPI_RENESAS_VIDEO_FWVGA_PT
@@ -581,6 +591,7 @@ config FB_MSM_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_ORISE_VIDEO_OPPO_PT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
+	select FB_MSM_MIPI_ORISE_CMD_OPPO_N1_PT
 	select FB_MSM_MIPI_NT35516_VIDEO_QHD_PT
 	select FB_MSM_MIPI_NT35516_CMD_QHD_PT
 	select FB_MSM_MIPI_NT35590_CMD_720P_PT
@@ -650,6 +661,7 @@ config FB_MSM_LVDS_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_NT35590_CMD_720P_PT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
+	select FB_MSM_MIPI_ORISE_CMD_OPPO_N1_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
 	select FB_MSM_MIPI_CHIMEI_WXGA
 	select FB_MSM_MIPI_CHIMEI_WUXGA
@@ -711,7 +723,7 @@ config FB_MSM_MIPI_NOVATEK_CMD_QHD_PT_PANEL
 	select FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
 
 config FB_MSM_MIPI_ORISE_VIDEO_OPPO_PT_PANEL
-	bool "MIPI ORISE VIDEO OPPO PT Panel"
+	bool "Oppo Find5 Panel"
 	select FB_MSM_MIPI_ORISE_VIDEO_OPPO_PT
 	
 config FB_MSM_MIPI_ORISE_VIDEO_720P_PT_PANEL
@@ -721,6 +733,10 @@ config FB_MSM_MIPI_ORISE_VIDEO_720P_PT_PANEL
 config FB_MSM_MIPI_ORISE_CMD_720P_PT_PANEL
 	bool "MIPI ORISE CMD 720P PT Panel"
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
+
+config FB_MSM_MIPI_ORISE_CMD_OPPO_N1_PT_PANEL
+	bool "Oppo N1 Panel"
+	select FB_MSM_MIPI_ORISE_CMD_OPPO_N1_PT
 
 config FB_MSM_MIPI_RENESAS_VIDEO_FWVGA_PT_PANEL
 	bool "MIPI Renesas Video FWVGA PT Panel"
@@ -1020,6 +1036,12 @@ config FB_MSM_EBI2_PANEL_DETECT
 
 config FB_MSM_MIPI_BACKLIGHT_LM3528
 	bool "lcd backlight lm3528 driver"
+	depends on I2C
+	---help---
+	  Support for panel backlight
+
+config FB_MSM_MIPI_BACKLIGHT_LM3630
+	bool "lcd backlight lm36308 driver"
 	depends on I2C
 	---help---
 	  Support for panel backlight

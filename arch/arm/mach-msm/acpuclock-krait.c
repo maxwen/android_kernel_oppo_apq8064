@@ -1163,6 +1163,7 @@ static struct pvs_table * __init select_freq_plan(u32 pte_efuse_phys,
 	bin_idx = get_speed_bin(pte_efuse_val);
 	tbl_idx = get_pvs_bin(pte_efuse_val);
 
+	pr_info("%s: bin_idx = %d tbl_idx = %d\n", __func__, bin_idx, tbl_idx);
 	return &pvs_tables[bin_idx][tbl_idx];
 }
 

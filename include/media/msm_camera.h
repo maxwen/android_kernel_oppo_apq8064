@@ -945,7 +945,16 @@ struct msm_stats_buf {
 #define MSM_V4L2_SET_CTRL_CMD	12
 #define MSM_V4L2_EVT_SUB_MASK	13
 #define MSM_V4L2_PRIVATE_CMD    14
+/* OPPO 2013-07-29 lanhe Modify for m9m0 caf action start */
+#ifndef CONFIG_M9MO
 #define MSM_V4L2_MAX			15
+#else
+#define MSM_V4L2_VENDOR_CMD     15
+#define MSM_V4L2_SCENE_CMD      16 ///guanjindian add
+#define MSM_V4L2_MAX			17
+#endif
+/* OPPO 2013-07-29 lanhe Modify end */
+
 #define V4L2_CAMERA_EXIT		43
 
 struct crop_info {
@@ -1023,9 +1032,39 @@ struct msm_snapshot_pp_status {
 #define CFG_SET_VISION_MODE           55
 #define CFG_SET_VISION_AE             56
 #define CFG_HDR_UPDATE                57
+
+/* OPPO 2013-07-24 lanhe Add for m9mo start */
+#ifndef CONFIG_M9MO
 #define CFG_ACTUAOTOR_REG_INIT        58
 #define CFG_MAX                       59
-
+#else
+#define CFG_SET_AF_MODE			  58
+#define CFG_SET_AE_MODE           59
+#define CFG_SET_FLASH_MODE        60
+#define CFG_SET_AF_AREA           61
+#define CFG_SET_AE_AREA           62
+#define CFG_GET_AF_STATE          63
+#define CFG_GET_FLASH_STATE       64
+#define CFG_FRAME_NOTIFICATION    65
+#define CFG_SET_SCENE_MODE		  66
+#define CFG_SET_ASD_ENABLE		  67
+#define CFG_SET_SLOW_SHUTTER	  68
+#define CFG_SET_HDR_ENABLE	  	  69
+#define CFG_SET_ORIENTATION		  70
+#define CFG_GET_AUTO_ISO_VALUE	  71
+#define CFG_GET_EXPOSURE_TIME	  72
+#define CFG_SET_FD_INFO     	  73
+#define CFG_GET_SCENE_MODE        74    
+#define CFG_SET_SPORT_MODE        75
+#define CFG_SET_AE_LOCK			  76
+#define CFG_SET_AWB_LOCK		  77
+#define CFG_SET_CAF_RESULT		  78
+#define CFG_GET_FLASH_INFO	  	  79
+#define CFG_SET_FLIP_HINT	  	  80
+#define CFG_ACTUAOTOR_REG_INIT    81
+#define CFG_MAX                   82
+#endif
+/* OPPO 2013-07-24 lanhe Add end */
 
 #define MOVE_NEAR	0
 #define MOVE_FAR	1
@@ -1228,8 +1267,8 @@ struct sensor_pict_fps {
 struct exp_gain_cfg {
 	uint16_t gain;
 	uint32_t line;
-	int32_t luma_avg;/*OPPO HDR*/
-	uint16_t fgain;/*OPPO HDR*/
+	int32_t luma_avg;
+	uint16_t fgain;
 };
 
 struct focus_cfg {
@@ -1370,10 +1409,21 @@ struct mirror_flip {
 	int32_t y_flip;
 };
 
+/* OPPO 2013-07-24 lanhe Modify for m9mo Touch AE&AF start */
+#ifndef CONFIG_M9MO
 struct cord {
 	uint32_t x;
 	uint32_t y;
 };
+#else
+struct cord {
+	uint32_t x;
+	uint32_t y;
+	uint32_t dx;
+	uint32_t dy;
+};
+#endif
+/* OPPO 2013-07-24 lanhe Modify end */
 
 struct msm_eeprom_data_t {
 	void *eeprom_data;
@@ -1667,7 +1717,7 @@ struct sensor_cfg_data {
 		struct sensor_output_info_t output_info;
 		struct msm_eeprom_data_t eeprom_data;
 		struct csi_lane_params_t csi_lane_params;
-		struct sensor_hdr_update_parm_t hdr_update_parm;/*OPPO HDR*/
+		struct sensor_hdr_update_parm_t hdr_update_parm;
 		/* QRD */
 		uint16_t antibanding;
 		uint8_t contrast;
@@ -1684,6 +1734,32 @@ struct sensor_cfg_data {
 		void *setting;
 		int32_t vision_mode_enable;
 		int32_t vision_ae;
+/* OPPO 2013-07-24 lanhe And for m9mo Touch AE&AF start */
+#ifdef CONFIG_M9MO
+		struct cord af_cord;
+		int af_mode;
+		int flash_mode;
+		int flash_state;
+		int af_state;
+		uint8_t zoom;
+		int32_t scene_mode;
+		int32_t asd_enable;
+		int32_t slow_shutter;
+		int32_t hdr_enable;
+		int32_t orientation;
+		int32_t caf_result;
+		int32_t auto_iso_value;
+		int32_t exp_time;
+		int32_t flash_info;
+		struct cord fd_cord;
+		int32_t ae_lock;
+		int32_t awb_lock;
+		int32_t flip_hint;
+/* OPPO 2013-07-24 lanhe Add end */
+/*OPPO 2013-09-14 guanjindian add for N1 asd start*/
+		int sport_enable;
+#endif
+/*OPPO 2013-09-14 guanjindian add end*/
 	} cfg;
 };
 

@@ -35,6 +35,11 @@
 #include <mach/subsystem_notif.h>
 #include <mach/subsystem_restart.h>
 
+#ifdef CONFIG_VENDOR_EDIT
+//YiYutian@OnlineRD.AirService.Phone 2013.09.23, Modified for different version
+#include <linux/pcb_version.h>
+#endif
+
 #include "smd_private.h"
 
 struct subsys_soc_restart_order {
@@ -514,10 +519,22 @@ int subsystem_restart_dev(struct subsys_device *dev)
 	if(!strncmp("external_modem", name,SUBSYS_NAME_MAX_LENGTH))
 	{
 		modem_reset_num++;
-		if(get_sim_status() == 1)
-		{
-			set_need_pin_process_flag(1);
+#ifdef CONFIG_VENDOR_EDIT
+//YiYutian@OnlineRD.AirService.Phone 2013.09.23, Modified for different version
+		if((get_pcb_version() >=PCB_VERSION_EVT_N1)&&(get_pcb_version() <= PCB_VERSION_PVT_N1T)){
+			if(get_sim_status() == 0)
+			{
+				set_need_pin_process_flag(1);
+			}
+		}else{
+#endif
+			if(get_sim_status() == 1)
+			{
+				set_need_pin_process_flag(1);
+			}
+#ifdef CONFIG_VENDOR_EDIT
 		}
+#endif
 	}
 //#endif /* VENDOR_EDIT */
 	switch (restart_level) {

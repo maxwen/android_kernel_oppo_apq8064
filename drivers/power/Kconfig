@@ -443,4 +443,18 @@ config AB8500_BATTERY_THERM_ON_BATCTRL
 	  Say Y to enable battery temperature measurements using
 	  thermistor connected on BATCTRL ADC.
 
+# OPPO N1
+config SMB358_CHARGER
+	tristate "smb358 charger"
+	depends on I2C
+	help
+	  Say Y to enable support for the SMB358 charger (Oppo N1)
+
+config BQ27541_GAUGE
+	tristate "BQ27541 battery fuelgauge driver"
+	depends on I2C
+	help
+	  Say Y to include support for BQ27541 (Oppo N1)
+# OPPO N1 end
+
 endif # POWER_SUPPLY

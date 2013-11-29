@@ -44,6 +44,11 @@ enum tabla_micbias_num {
 	TABLA_MICBIAS2,
 	TABLA_MICBIAS3,
 	TABLA_MICBIAS4,
+	/*OPPO 2013-10-23 zhzhyon Add for MICBIAS DC*/
+	#ifdef CONFIG_VENDOR_EDIT
+	TABLA_NUM_MICBIAS,
+	#endif
+	/*OPPO 2013-10-23 zhzhyon Add end*/
 };
 
 enum tabla_pid_current {
@@ -179,6 +184,11 @@ struct tabla_mbhc_config {
 	bool detect_extn_cable;
 	/* swap_gnd_mic returns true if extern GND/MIC swap switch toggled */
 	bool (*swap_gnd_mic) (struct snd_soc_codec *);
+	/*OPPO 2013-10-23 zhzhyon Add for MICBIAS DC*/
+	#ifdef CONFIG_VENDOR_EDIT
+	bool micbias_always_on;
+	#endif
+	/*OPP 2013-10-23 zhzhyon Add end*/
 };
 
 extern int tabla_hs_detect(struct snd_soc_codec *codec,

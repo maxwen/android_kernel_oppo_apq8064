@@ -478,6 +478,60 @@ struct platform_device apq8064_device_qup_i2c_gsbi4 = {
 	.resource	= resources_qup_i2c_gsbi4,
 };
 
+/* OPPO 2013-07-24 lanhe Add for gsbi4 spi start */
+static struct resource resources_qup_spi_gsbi4[] = {
+	{
+		.name   = "spi_base",
+		.start  = MSM_GSBI4_QUP_PHYS,
+		.end    = MSM_GSBI4_QUP_PHYS + SZ_4K - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.name   = "gsbi_base",
+		.start  = MSM_GSBI4_PHYS,
+		.end    = MSM_GSBI4_PHYS + 4 - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.name   = "spi_irq_in",
+		.start  = GSBI4_QUP_IRQ,
+		.end    = GSBI4_QUP_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
+	{
+		.name   = "spi_clk",
+		.start  = 13,
+		.end    = 13,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_miso",
+		.start  = 11,
+		.end    = 11,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_mosi",
+		.start  = 10,
+		.end    = 10,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_cs",
+		.start  = 12,
+		.end    = 12,
+		.flags  = IORESOURCE_IO,
+	},
+};
+
+struct platform_device msm8064_device_qup_spi_gsbi4 = {
+	.name	= "spi_qsd",
+	.id	= 0,
+	.num_resources	= ARRAY_SIZE(resources_qup_spi_gsbi4),
+	.resource	= resources_qup_spi_gsbi4,
+};
+/* OPPO 2013-07-24 lanhe Add end */
+
 static struct resource resources_qup_spi_gsbi5[] = {
 	{
 		.name   = "spi_base",
@@ -545,6 +599,15 @@ struct platform_device mpq8064_device_qup_i2c_gsbi5 = {
 	.num_resources	= ARRAY_SIZE(resources_qup_i2c_gsbi5),
 	.resource	= resources_qup_i2c_gsbi5,
 };
+
+/* OPPO 2013-07-24 sjc Add begin for reason */
+struct platform_device apq8064_device_qup_i2c_gsbi5 = {
+	.name			= "qup_i2c",
+	.id				= 5,
+	.num_resources	= ARRAY_SIZE(resources_qup_i2c_gsbi5),
+	.resource			= resources_qup_i2c_gsbi5,
+};
+/* OPPO 2013-07-24 sjc add end */
 
 /* OPPO 2013-03-18 zhenwx  Add begin for add gsbi5 uart debug port */
 static struct resource resources_uart_gsbi5[] = {
@@ -645,6 +708,30 @@ struct platform_device apq8064_device_uart_gsbi7 = {
 	.num_resources	= ARRAY_SIZE(resources_uart_gsbi7),
 	.resource	= resources_uart_gsbi7,
 };
+
+/* OPPO 2013-08-13 liubin Add for gsbi7 mux device start */
+static struct resource msm_cam_gsbi7_i2c_mux_resources[] = {
+	{
+		.name   = "i2c_mux_rw",
+		.start  = 0x008003E8,
+		.end    = 0x008003E8 + SZ_8 - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.name   = "i2c_mux_ctl",
+		.start  = 0x008020BC,
+		.end    = 0x008020BC + SZ_4 - 1,
+		.flags  = IORESOURCE_MEM,
+	},
+};
+
+struct platform_device msm8064_device_i2c_mux_gsbi7 = {
+	.name           = "msm_cam_i2c_mux",
+	.id             = 0,
+	.resource       = msm_cam_gsbi7_i2c_mux_resources,
+	.num_resources  = ARRAY_SIZE(msm_cam_gsbi7_i2c_mux_resources),
+};
+/* OPPO 2013-08-13 liubin Add end */
 
 struct platform_device apq_pcm = {
 	.name	= "msm-pcm-dsp",

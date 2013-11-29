@@ -83,6 +83,13 @@ obj-$(CONFIG_TOUCHSCREEN_LGE_COMMON)	+= lge_touch_core.o
 obj-$(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS) += touch_synaptics.o
 obj-$(CONFIG_TOUCHSCREEN_LGE_SYNAPTICS) += touch_synaptics_ds4_fw_upgrade.o
 
+ifdef CONFIG_OPPO_N1
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_S3202_I2C_RMI) += synaptics_s3202_i2c_rmi_n1.o
+obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_S3202_I2C_RMI) += synaptics_update_firmware_n1.o
+obj-$(CONFIG_TOUCHSCREEN_BKTP) += touch_y8c20x66a.o
+endif
+
+ifdef CONFIG_OPPO_FIND5
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_S3202_I2C_RMI) += synaptics_s3202_i2c_rmi.o
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_S3202_I2C_RMI) += synaptics_update_firmware.o
-
+endif
