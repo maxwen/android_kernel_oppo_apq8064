@@ -296,6 +296,8 @@ static bool s2w_exec_power_press = true;
 // -1 = not touched; -2 = touched on screen; >=0 = touched on button panel
 static unsigned int s2w_down_x = -1;
 static u64 dt2w_double_tap_start;
+static unsigned int dt2w_down_x = -1;
+static unsigned int dt2w_down_y = -1;
 
 static struct input_dev * s2w_pwrdev = NULL;
 static DEFINE_MUTEX(pwrkeyworklock);
@@ -1736,6 +1738,12 @@ static void synaptics_ts_work_func(struct work_struct *work)
 						offset_correction(ts, &f0_x, &f0_y);
 
 #ifdef CONFIG_TOUCHSCREEN_SYNAPTICS_S2W
+						if (input_wakeup_active(ts) && ts->is_tp_suspended && ts->dt2w_enabled && f0_y > ts->dt2w_barrier_y && dt2w_down_x == -1){
+							print_ts(TS_TRACE, KERN_ERR "dt2w: down at %d %d\n", f0_x, f0_y);
+							dt2w_down_x = f0_x;
+							dt2w_down_y = f0_y;
+					    
+						}
 						if (input_wakeup_active(ts) && ts->s2w_enabled)
 						{
 							if (i == 0 && s2w_down_x != -2)
@@ -1852,21 +1860,30 @@ static void synaptics_ts_work_func(struct work_struct *work)
 					s2w_barrier_reached = false;
 					s2w_down_x = -1;
 
-					if (ts->is_tp_suspended && ts->dt2w_enabled && f0_y > ts->dt2w_barrier_y){
-						u64 now = ktime_to_ms(ktime_get());
-						u64 diff = now - dt2w_double_tap_start;
-						u64 tapTime = ts->dt2w_duration;
-						u64 tooLongTime = tapTime + ts->dt2w_threshold;
+					if (ts->is_tp_suspended && ts->dt2w_enabled && dt2w_down_x != -1){
+						// if the position between down and up has moved too far
+						// dont recognize it as a tap
+						if (abs(f0_x - dt2w_down_x) > 10 ||
+							abs(f0_y - dt2w_down_y) > 10){
+							print_ts(TS_TRACE, KERN_ERR"dt2w: finger moved too far after down - ignore\n");
+							dt2w_down_x = -1;
+						} else {
+							u64 now = ktime_to_ms(ktime_get());
+							u64 diff = now - dt2w_double_tap_start;
+							u64 tapTime = ts->dt2w_duration;
+							u64 tooLongTime = tapTime + ts->dt2w_threshold;
 
-						print_ts(TS_TRACE, KERN_ERR "dt2w x=%d y=%d\n", f0_x, f0_y);
-						print_ts(TS_TRACE, KERN_ERR "dt2w diff=%lld\n", diff);
+							print_ts(TS_TRACE, KERN_ERR "dt2w: x=%d y=%d\n", f0_x, f0_y);
+							print_ts(TS_TRACE, KERN_ERR "dt2w: diff=%lld\n", diff);
 
-						dt2w_double_tap_start = now;
+							dt2w_double_tap_start = now;
+							dt2w_down_x = -1;
 					
-						if (diff > tapTime && diff < tooLongTime){
-							simulate_power_press();
-							input_wakeup_event = true;
-							goto work_func_end;
+							if (diff > tapTime && diff < tooLongTime){
+								simulate_power_press();
+								input_wakeup_event = true;
+								goto work_func_end;
+							}
 						}
 					}
 				}
