@@ -286,7 +286,7 @@ static unsigned int s2w_down_x = -1;
 static u64 dt2w_double_tap_start;
 static unsigned int dt2w_down_x = -1;
 static unsigned int dt2w_down_y = -1;
-
+#define DT2W_TAP_THRESHOLD 30
 static struct input_dev * s2w_pwrdev = NULL;
 static DEFINE_MUTEX(pwrkeyworklock);
 
@@ -1957,8 +1957,8 @@ static void synaptics_ts_work_func(struct work_struct *work)
 					if (ts->is_tp_suspended && ts->dt2w_enabled && dt2w_down_x != -1){
 						// if the position between down and up has moved too far
 						// dont recognize it as a tap
-						if (abs(f0_x - dt2w_down_x) > 10 ||
-							abs(f0_y - dt2w_down_y) > 10){
+						if (abs(f0_x - dt2w_down_x) > DT2W_TAP_THRESHOLD ||
+							abs(f0_y - dt2w_down_y) > DT2W_TAP_THRESHOLD){
 							print_ts(TS_TRACE, KERN_ERR"dt2w: finger moved too far after down - ignore\n");
 							dt2w_down_x = -1;
 						} else {
