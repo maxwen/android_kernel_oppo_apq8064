@@ -2885,7 +2885,11 @@ static int mdp4_calc_req_mdp_clk(struct msm_fb_data_type *mfd,
 	 * 4 lines input during back porch time if scaling is
 	 * required(FIR).
 	 */
+#ifdef CONFIG_OPPO_FIND5
+	if ((mfd->panel_info.lcdc.v_back_porch < 4) &&
+#else
 	if ((mfd->panel_info.lcdc.v_back_porch <= 4) &&
+#endif
 	    (src_h != dst_h) &&
 	    (mfd->panel_info.lcdc.v_back_porch)) {
 		u32 clk = 0;
@@ -2939,7 +2943,9 @@ static int mdp4_calc_pipe_mdp_clk(struct msm_fb_data_type *mfd,
 				  struct mdp4_overlay_pipe *pipe)
 {
 	int ret = -EINVAL;
-
+#ifdef CONFIG_OPPO_FIND5
+	u32 shift = 16;
+#endif
 	if (!pipe) {
 		pr_err("%s: pipe is null!\n", __func__);
 		return ret;
@@ -2971,6 +2977,9 @@ static int mdp4_calc_pipe_mdp_clk(struct msm_fb_data_type *mfd,
 	pr_debug("%s: required mdp clk %d mixer %d pipe ndx %d\n",
 		 __func__, pipe->req_clk, pipe->mixer_num, pipe->pipe_ndx);
 
+#ifdef CONFIG_OPPO_FIND5
+	pipe->req_clk = (((pipe->req_clk) >> shift) * 23 / 20) << shift;
+#endif
 	return 0;
 }
 
@@ -3158,8 +3167,11 @@ int mdp4_overlay_mdp_perf_req(struct msm_fb_data_type *mfd)
 			worst_mdp_clk = pipe->req_clk;
 
 		if (pipe->req_clk > mdp_max_clk)
+#ifdef CONFIG_OPPO_FIND5
+			pipe->req_clk = mdp_max_clk;
+#else
 			perf_req->use_ov_blt[pipe->mixer_num] = 1;
-
+#endif
 		if (pipe->mixer_num == MDP4_MIXER2)
 			perf_req->use_ov_blt[MDP4_MIXER2] = 1;
 
