@@ -202,8 +202,13 @@ static struct msm_bus_vectors mdp_ui_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+#ifdef CONFIG_OPPO_FIND5
+		.ab = 2000000000,
+		.ib = 2000000000,
+#else
 		.ab = 216000000 * 2,
 		.ib = 270000000 * 2,
+#endif
 	},
 };
 
@@ -212,8 +217,13 @@ static struct msm_bus_vectors mdp_vga_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+#ifdef CONFIG_OPPO_FIND5
+		.ab = 2000000000,
+		.ib = 2000000000,
+#else
 		.ab = 216000000 * 2,
 		.ib = 270000000 * 2,
+#endif
 	},
 };
 
@@ -222,8 +232,13 @@ static struct msm_bus_vectors mdp_720p_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+#ifdef CONFIG_OPPO_FIND5
+		.ab = 2000000000,
+		.ib = 2000000000,
+#else
 		.ab = 230400000 * 2,
 		.ib = 288000000 * 2,
+#endif
 	},
 };
 
@@ -232,8 +247,13 @@ static struct msm_bus_vectors mdp_1080p_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+#ifdef CONFIG_OPPO_FIND5
+		.ab = 2000000000,
+		.ib = 2000000000,
+#else
 		.ab = 334080000 * 2,
 		.ib = 417600000 * 2,
+#endif
 	},
 };
 
@@ -274,8 +294,13 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
 	.mdp_max_clk = 266667000,
 	.mdp_max_bw = 4290000000UL,
+#ifdef CONFIG_OPPO_FIND5
+	.mdp_bw_ab_factor = 200,
+	.mdp_bw_ib_factor = 210,
+#else
 	.mdp_bw_ab_factor = 115,
 	.mdp_bw_ib_factor = 200,
+#endif
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 	.mdp_rev = MDP_REV_44,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
