@@ -195,7 +195,7 @@ static int lm3528_i2c_probe(struct i2c_client *client, const struct i2c_device_i
 	}
 	rc = gpio_direction_output(LM3528_ENABLE_GPIO, 1);
 	if (rc) {
-		pr_err("%s: unable to enable!!!!!!!!!!!!\n", __func__);
+		pr_err("%s: unable to enable LM3528_ENABLE_GPIO\n", __func__);
 		goto exit;
 	}
 	
@@ -221,7 +221,7 @@ static int lm3528_suspend(struct i2c_client *client, pm_message_t mesg)
 	printk("%s:backlight suspend.\n", __func__);
 	rc = gpio_direction_output(LM3528_ENABLE_GPIO, 0);
 	if (rc) {
-		pr_err("%s: unable to enable!!!!!!!!!!!!\n", __func__);
+		pr_err("%s: unable to disable LM3528_ENABLE_GPIO\n", __func__);
 		return rc;
 	}
 
@@ -234,7 +234,7 @@ static int lm3528_resume(struct i2c_client *client)
 	printk("%s: backlight resume.\n", __func__);
 	rc = gpio_direction_output(LM3528_ENABLE_GPIO, 1);
 	if (rc) {
-		pr_err("%s: unable to enable!!!!!!!!!!!!\n", __func__);
+		pr_err("%s: unable to enable LM3528_ENABLE_GPIO\n", __func__);
 		return rc;
 	}
 

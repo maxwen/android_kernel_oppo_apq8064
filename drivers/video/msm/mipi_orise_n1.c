@@ -848,7 +848,7 @@ static ssize_t attr_orise_rda_bkl(struct device *dev,
     int bkl_from_ic = 0;
     bkl_from_ic = lm3630_bkl_readout();
     sscanf(buf, "%d", &cmd);
-    printk("backlight from userspace=%d, read from IC=%d\n", globle_bkl, bkl_from_ic);
+    pr_debug("backlight from userspace=%d, read from IC=%d\n", globle_bkl, bkl_from_ic);
     return ret;
 }
 
