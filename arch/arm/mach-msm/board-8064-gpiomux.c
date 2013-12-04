@@ -1011,6 +1011,7 @@ static struct gpiomux_setting ap2mdm_wakeup = {
 
 
 /* OPPO 2013-0-09 Neal add for vsync*/
+#ifdef CONFIG_OPPO_N1
 static struct gpiomux_setting mdp_vsync_suspend_cfg = { 
 	.func = GPIOMUX_FUNC_GPIO, 
 	.drv = GPIOMUX_DRV_2MA, 
@@ -1023,8 +1024,6 @@ static struct gpiomux_setting mdp_vsync_active_cfg = {
 	.pull = GPIOMUX_PULL_DOWN, 
 }; 
 
-
-
 static struct msm_gpiomux_config msm8960_mdp_vsync_configs[] __initdata = { 
 	{ 
 		.gpio = 0, 
@@ -1034,6 +1033,7 @@ static struct msm_gpiomux_config msm8960_mdp_vsync_configs[] __initdata = {
 			}, 
 	} 
 }; 
+#endif
 /* OPPO 2013-0-09 Neal add end*/
 
 static struct msm_gpiomux_config mdm_configs[] __initdata = {
@@ -1856,8 +1856,10 @@ void __init apq8064_init_gpiomux(void)
 #ifdef CONFIG_VENDOR_EDIT
 	msm_gpiomux_install(apq8064_backlight_enable,
 			ARRAY_SIZE(apq8064_backlight_enable));
+#ifdef CONFIG_OPPO_N1
 	msm_gpiomux_install(msm8960_mdp_vsync_configs, 
 		ARRAY_SIZE(msm8960_mdp_vsync_configs));
+#endif
 /* OPPO 2013-0-09 Neal add end*/
 
 #endif
