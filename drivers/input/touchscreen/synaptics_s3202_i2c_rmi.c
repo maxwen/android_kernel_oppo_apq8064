@@ -1926,20 +1926,22 @@ static void synaptics_ts_work_func(struct work_struct *work)
 						{
 							continue;
 						}
+						
+						// dont sent anything upstream if suspended
+						if (ts->is_tp_suspended == 0) {
+							input_report_abs(ts->input_dev, ABS_MT_POSITION_X, f0_x);
+							input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, f0_y);
+							input_report_abs(ts->input_dev, ABS_MT_PRESSURE, f0_z);
+							input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, f0_z);
+							input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, f0_wx);
+							input_report_abs(ts->input_dev, ABS_MT_WIDTH_MINOR, f0_wy);
+							input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, i);
+							input_mt_sync(ts->input_dev);
 
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_X, f0_x);
-						input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, f0_y);
-						input_report_abs(ts->input_dev, ABS_MT_PRESSURE, f0_z);
-						input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, f0_z);
-						input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, f0_wx);
-						input_report_abs(ts->input_dev, ABS_MT_WIDTH_MINOR, f0_wy);
-						input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, i);
-						input_mt_sync(ts->input_dev);
-
-						print_ts(TS_TRACE, KERN_ERR"[%s]:finger(%d): (x,y)=(%4d,%4d), z=%3d, f0_wx=%2d, f0_wy=%2d\n",
-							__func__, i, f0_x, f0_y, f0_z, f0_wx, f0_wy);
+							print_ts(TS_TRACE, KERN_ERR"[%s]:finger(%d): (x,y)=(%4d,%4d), z=%3d, f0_wx=%2d, f0_wy=%2d\n",
+									__func__, i, f0_x, f0_y, f0_z, f0_wx, f0_wy);
+						}
 					}
-
 				}
 			}
 			else//if (finger_pressed == 0)
